@@ -90,3 +90,15 @@ session has run long and facts show up "compacted", run `/clear` and re-pull.
   machine. If it's wrong, the server fails to start every session.
 - `.claude/launch.json` is a VS Code debugger format and is **not** read by
   Claude Code — it does nothing here.
+
+## Setup reference (keep lean — do NOT re-bloat)
+
+- **Superpowers** is the only skill pack kept (base system, required).
+- **Do NOT reinstall** `engineering-skills`, `engineering-advanced-skills`, or
+  `product-skills`. They were removed on purpose (~12k tokens + decision
+  noise). Re-adding them is what made Claude "dumber". Need one? Install that
+  single skill, not the whole pack.
+- `tradingview` + `unusualwhales` MCP servers load tools on-demand (~4k) — keep
+  them connected; they are not the bloat.
+- Never paste a real token (GitHub PAT, etc.) into a CLAUDE.md — it is plain
+  text. Use a shell env var instead.
