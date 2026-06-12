@@ -57,11 +57,17 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
    /ES futures · VIX · 10Y yield · DXY · gold · crude — each w/ source URL
    Overnight high/low · gap vs prior close
 
-② KEY LEVELS — from my JC (John Carter) script   [TOOL] TV pine_lines/labels
-   study_filter: "JC"   (JC script must be visible on chart)
-   Voodoo levels ..... pivot S/R, list high→low w/ price
-   Fireline .......... ES futures HIGH  → overhead resistance
-   Treeline .......... ES futures LOW   → support below
+② KEY LEVELS                              [TOOL] TradingView  (two pulls)
+   A) Voodoo levels (pivot S/R) — from my chart script:
+      data_get_pine_labels, study_filter: "AR SQUEEZE"  (script visible on chart)
+      List R3..PP..S3 high→low w/ price. These ARE on the chart.
+   B) Fireline / Treeline = /ES futures session high/low (NOT pivots, NOT labels —
+      the AR Squeeze script does NOT plot these):
+      data_get_ohlcv on ES1! (summary: true), then:
+      🔥 Fireline = ES High → resistance above
+      🌲 Treeline = ES Low  → support below
+      Note the ES→SPX offset (ES ~5-10 pts above SPX, fluctuates). Convert to SPX.
+      Default window = today's regular session; say "full Globex" for overnight.
    → Is SPX above / below / inside the Fireline–Treeline range?
    → Nearest Voodoo above = target | below = trip-wire
 
