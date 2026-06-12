@@ -45,6 +45,10 @@ Rule of thumb: numbers from tools = trust; stories from memory = verify.
 
 ### Briefing template (copy this structure every morning)
 
+To trigger it, just say:
+> "Give me my SPX 0DTE briefing — include today's news and economic calendar
+> with source links. Tag every fact [TOOL]/[STALE]/[MEMORY]."
+
 ```
 SPX 0DTE PRE-TRADE BRIEFING — <date>
 
