@@ -46,42 +46,59 @@ Rule of thumb: numbers from tools = trust; stories from memory = verify.
 ### Briefing template (copy this structure every morning)
 
 To trigger it, just say:
-> "Give me my SPX 0DTE briefing — include today's news and economic calendar
-> with source links. Tag every fact [TOOL]/[STALE]/[MEMORY]."
+> "Give me my SPX 0DTE morning brief — pull my JC levels, institutional flow,
+> and today's news + economic calendar with source links. Tag every fact
+> [TOOL]/[STALE]/[MEMORY]."
 
 ```
-SPX 0DTE PRE-TRADE BRIEFING — <date>
+SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
 
-SESSION CLOSE / LEVELS
-  Open / Close / Session move — each line tagged [TOOL]/[STALE]/[MEMORY]
-  with the tool name + pull time (e.g. [TOOL] TV quote_get CBOE:SPX, 9:30 ET).
+① OVERNIGHT / MACRO                       [TOOL] Firecrawl web (show URLs)
+   /ES futures · VIX · 10Y yield · DXY · gold · crude — each w/ source URL
+   Overnight high/low · gap vs prior close
 
-GEX REGIME: <POSITIVE/NEGATIVE> GAMMA (<net>)  [TOOL] UW get_greek_exposure_by_strike
-  Strike | Net GEX | Role (call wall / pivot / put accel / put wall) | Source tag
+② KEY LEVELS — from my JC (John Carter) script   [TOOL] TV pine_lines/labels
+   study_filter: "JC"   (JC script must be visible on chart)
+   Voodoo levels ..... pivot S/R, list high→low w/ price
+   Fireline .......... ES futures HIGH  → overhead resistance
+   Treeline .......... ES futures LOW   → support below
+   → Is SPX above / below / inside the Fireline–Treeline range?
+   → Nearest Voodoo above = target | below = trip-wire
 
-MAX PAIN: <level>  [TOOL] UW get_max_pain
+③ INSTITUTIONAL FLOW & POSITIONING        [TOOL] Unusual Whales
+   GEX regime (pos/neg gamma) + call wall / put wall strikes
+   Dark pool prints ...... biggest levels + bull/bear lean
+   Net options flow ...... premium into calls vs puts
+   OI changes / max pain . where dealers are pinned
 
-NEWS / CATALYSTS  [TOOL] Firecrawl web search — every line needs a source URL
-  Search the web this session for market-moving news + today's economic
-  calendar. Prefer FREE, reliable sources:
-    - investing.com (news + economic calendar)
-    - reuters.com / apnews.com (wire news)
-    - cnbc.com / marketwatch.com (market news)
-    - finance.yahoo.com (quotes + news)
-    - cmegroup.com FedWatch (rate-cut odds)
-    - sec.gov EDGAR (verify IPOs / filings)
-  Any line without a live URL pulled this session = [MEMORY], not fact.
+④ CATALYSTS                               [TOOL] Firecrawl web (show URLs)
+   Economic calendar today . event + time ET + prior/consensus
+   Earnings (overnight/AMC) . names that move SPX/sectors
+   Upgrades / downgrades .... ticker, firm, old→new
+   Geopolitical / headlines . one-liner + source URL
 
-5-BULLET SUMMARY  (bias / upside target / downside trip-wire / chop zone / watch)
-  — every bullet carries a source tag; news lines need a URL or get [MEMORY].
+⑤ NEWS (top movers)                       [TOOL] Firecrawl web (show URLs)
+   3-5 headlines, each with a clickable link
+   Free sources: investing.com (news + econ calendar), reuters.com,
+   apnews.com, cnbc.com, marketwatch.com, finance.yahoo.com,
+   cmegroup.com FedWatch, sec.gov EDGAR
 
-DO NOT TRADE UNTIL YOU VERIFY
-  Claim | Tag ([MEMORY]/[STALE]/[MISSING]) | Action to verify
+⑥ SUMMARY & BIAS
+   Bias: BULLISH / BEARISH / NEUTRAL-CHOP
+   Lean: favor CALLS / favor PUTS / flat until <level> breaks
+   - Above Fireline (ES high) reclaimed → bullish, calls, target next Voodoo up
+   - Below Treeline (ES low) lost      → bearish, puts, target next Voodoo down
+   - Inside the range + neg gamma      → chop, stay flat until a break
+   Upside target .... <level>   Downside trip-wire .... <level>
+
+⑦ DO NOT TRADE UNTIL YOU VERIFY
+   Claim | Tag [MEMORY]/[STALE]/[MISSING] | How to verify
 ```
 
-A good briefing has all NUMBERS tagged `[TOOL]`, all NEWS either `[TOOL]`+URL
-or honestly flagged `[MEMORY]`, and a populated "DO NOT TRADE" list. If the
-session has run long and facts show up "compacted", run `/clear` and re-pull.
+A good brief has all NUMBERS/LEVELS tagged `[TOOL]`, all NEWS either
+`[TOOL]`+URL or honestly flagged `[MEMORY]`, and a populated "DO NOT TRADE"
+list. If the session has run long and facts show up "compacted", `/clear`
+and re-pull.
 
 ## What is NOT the problem (verified, don't chase it)
 
