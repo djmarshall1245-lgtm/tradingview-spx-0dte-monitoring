@@ -57,6 +57,17 @@ GEX REGIME: <POSITIVE/NEGATIVE> GAMMA (<net>)  [TOOL] UW get_greek_exposure_by_s
 
 MAX PAIN: <level>  [TOOL] UW get_max_pain
 
+NEWS / CATALYSTS  [TOOL] Firecrawl web search — every line needs a source URL
+  Search the web this session for market-moving news + today's economic
+  calendar. Prefer FREE, reliable sources:
+    - investing.com (news + economic calendar)
+    - reuters.com / apnews.com (wire news)
+    - cnbc.com / marketwatch.com (market news)
+    - finance.yahoo.com (quotes + news)
+    - cmegroup.com FedWatch (rate-cut odds)
+    - sec.gov EDGAR (verify IPOs / filings)
+  Any line without a live URL pulled this session = [MEMORY], not fact.
+
 5-BULLET SUMMARY  (bias / upside target / downside trip-wire / chop zone / watch)
   — every bullet carries a source tag; news lines need a URL or get [MEMORY].
 
