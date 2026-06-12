@@ -24,6 +24,25 @@ always one of these three — check them in order:
    costs ~12k+ tokens and adds decision noise on every turn. Disable plugins
    you don't use for this workflow.
 
+## Trading safety rules — sourcing (apply to EVERY market briefing)
+
+Confident output is not the same as verified output. Before any number or
+claim is used for sizing a trade, it must be sourced. Follow these rules:
+
+1. **Tag every fact with its source.** For each number or claim, mark:
+   - `[TOOL]` — pulled live from a tool this session
+   - `[STALE]` — from a cached/older tool result (include the timestamp)
+   - `[MEMORY]` — model's own knowledge, NOT verified by a tool
+2. **Re-pull live; never reuse cached files for the day's data.** If a tool
+   fails, say so — do not fill the gap from memory.
+3. **Show the source URL for any news/event** (IPOs, geopolitics, SKEW, etc.).
+   If it wasn't pulled from the web this session, say so. No link → treat as
+   `[MEMORY]`, not fact.
+4. **End with a "DO NOT TRADE UNTIL YOU VERIFY" list** of everything tagged
+   `[MEMORY]` or `[STALE]`.
+
+Rule of thumb: numbers from tools = trust; stories from memory = verify.
+
 ## What is NOT the problem (verified, don't chase it)
 
 - **MCP servers are fine.** Their tools load **on-demand** (~4k tokens total),
