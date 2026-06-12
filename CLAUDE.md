@@ -43,6 +43,31 @@ claim is used for sizing a trade, it must be sourced. Follow these rules:
 
 Rule of thumb: numbers from tools = trust; stories from memory = verify.
 
+### Briefing template (copy this structure every morning)
+
+```
+SPX 0DTE PRE-TRADE BRIEFING — <date>
+
+SESSION CLOSE / LEVELS
+  Open / Close / Session move — each line tagged [TOOL]/[STALE]/[MEMORY]
+  with the tool name + pull time (e.g. [TOOL] TV quote_get CBOE:SPX, 9:30 ET).
+
+GEX REGIME: <POSITIVE/NEGATIVE> GAMMA (<net>)  [TOOL] UW get_greek_exposure_by_strike
+  Strike | Net GEX | Role (call wall / pivot / put accel / put wall) | Source tag
+
+MAX PAIN: <level>  [TOOL] UW get_max_pain
+
+5-BULLET SUMMARY  (bias / upside target / downside trip-wire / chop zone / watch)
+  — every bullet carries a source tag; news lines need a URL or get [MEMORY].
+
+DO NOT TRADE UNTIL YOU VERIFY
+  Claim | Tag ([MEMORY]/[STALE]/[MISSING]) | Action to verify
+```
+
+A good briefing has all NUMBERS tagged `[TOOL]`, all NEWS either `[TOOL]`+URL
+or honestly flagged `[MEMORY]`, and a populated "DO NOT TRADE" list. If the
+session has run long and facts show up "compacted", run `/clear` and re-pull.
+
 ## What is NOT the problem (verified, don't chase it)
 
 - **MCP servers are fine.** Their tools load **on-demand** (~4k tokens total),
