@@ -1,0 +1,48 @@
+# CLAUDE.md — SPX 0DTE Monitoring
+
+Trading workspace for supervising a SPX/SPY 0DTE Pine Script on TradingView
+Desktop. This file keeps Claude Code lean so it stays sharp during sessions.
+
+## Keep-it-lean checklist
+
+If Claude starts making sloppy, "dumber than usual" mistakes, it's almost
+always one of these three — check them in order:
+
+1. **Model — biggest lever.** Run `/model` and confirm you're on **Opus**
+   (`claude-opus-4-8`) for real reasoning work. Sonnet 4.6 is a capability
+   step down. Note: there is no `/FABLE` command — switch models only via
+   `/model`.
+
+2. **Session hygiene — run `/clear` between unrelated tasks.** File reads pile
+   up in context (a long session can carry 40k+ tokens of stale read output).
+   When context fills, Claude auto-compacts and summarizes away detail
+   mid-task — that's a "gets dumber" event. Starting fresh avoids it. Use
+   `/context` to check; if "Read results" is a large share, `/clear`.
+
+3. **Prune skills/plugins.** Only keep skills relevant to trading. A large
+   plugin catalog (e.g. ~100 `senior-*` / infra skills, ~30 `firecrawl-*`)
+   costs ~12k+ tokens and adds decision noise on every turn. Disable plugins
+   you don't use for this workflow.
+
+## What is NOT the problem (verified, don't chase it)
+
+- **MCP servers are fine.** Their tools load **on-demand** (~4k tokens total),
+  not all upfront. The long `tradingview-mcp` / `unusualwhales` tool lists in
+  `/mcp` do **not** bloat context. Leave the MCP servers connected.
+- Servers showing `needs authentication` (robinhood, gmail, calendar, drive)
+  are harmless if unused — authenticate them only when you actually need them.
+
+## Diagnostics
+
+- `/context` — token breakdown by category (model, skills, messages, reads).
+- `/mcp` — MCP server connection status.
+- `/model` — view / change the active model.
+- `claude --debug` — see MCP startup errors if a server won't connect.
+
+## MCP config
+
+- `.mcp.json` defines the project's `tradingview` MCP server. The `args` path
+  must point to the real `tradingview-mcp-jackson/src/server.js` on **this**
+  machine. If it's wrong, the server fails to start every session.
+- `.claude/launch.json` is a VS Code debugger format and is **not** read by
+  Claude Code — it does nothing here.
