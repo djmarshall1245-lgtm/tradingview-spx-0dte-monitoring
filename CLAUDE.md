@@ -195,6 +195,33 @@ MANAGE & EXIT (every close also = review → approve → place):
 10. **Chart invalidation** (signal flip, VWAP lost, MON EXIT) or **3:30 ET** → exit.
 11. Log it as "trade #_ of 2 today." Two losses = done.
 
+## Relay protocol (terminal = hands, strategist = brain, me = boss)
+
+The terminal pulls data + previews/places orders. A separate strategist session
+gives the GO/NO-GO. I (the user) relay between them and approve every real order.
+There is no live link between sessions — I am the relay, by design.
+
+Paste the strategist one of these:
+
+ENTRY CHECK
+- Quant: SIGNAL _ | CONFLUENCE _/6 | price _ | between Voodoo _ & _ | TIME _
+- Flow: CONFIRM/CONTRADICT/MIXED | GEX regime _
+- Decision verdict: _
+- Order preview (review_option_order): SPX/SPY _ C/P strike _ | bid/ask _ |
+  delta _ | cost _ | trade #_ of 2
+→ reply: GO/NO-GO + strike/limit + the one deciding reason.
+
+MANAGE CHECK
+- Position: _ C/P _ | paid _ | now _ | P&L _%
+- Chart: signal _ | VWAP _ | MON EXIT _ | time _
+- Flow now: _
+→ reply: HOLD / TAKE PROFIT / CUT (esp. the −50% line & Voodoo TP).
+
+The strategist auto-applies: confluence ≥3, flow-confirm, ATM/~0.50 delta,
+limit-at-mid, −50% stop, Voodoo TP, 2-trade cap, 9:45–2:30 window. Fill the key
+4 — signal, confluence, flow, order preview — and paste whatever the terminal
+gives (raw is fine).
+
 ## What is NOT the problem (verified, don't chase it)
 
 - **MCP servers are fine.** Their tools load **on-demand** (~4k tokens total),
