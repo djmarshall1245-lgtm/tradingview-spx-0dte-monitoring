@@ -106,44 +106,39 @@ A good brief has all NUMBERS/LEVELS tagged `[TOOL]`, all NEWS either
 list. If the session has run long and facts show up "compacted", `/clear`
 and re-pull.
 
-## Live Trade Desk (intraday — 2 subagents + a gate)
+## Live Trade Desk (intraday — 3 subagents)
 
 Token-lean multi-agent setup. Run **1-2× a day when a signal is setting up** —
-NOT continuously. Two subagents isolate the heavy data pulls (their big payloads
-stay out of the main context); Risk + Verify are cheap reasoning steps run by
-the main session. The morning brief stays separate — it's the once-daily
+NOT continuously. The two data subagents isolate the heavy pulls (their big
+payloads stay out of the main context); the decision-agent is a cheap
+reasoning gate. The morning brief stays separate — it's the once-daily
 strategic layer; this is the tactical at-signal layer.
 
 **Trigger:** "Run my trade desk on the current setup."
 
 Sequence the main session follows:
-1. **Quant agent** (subagent) → chart snapshot: SIGNAL (TREND/SCALP/EARLY/WATCH),
+1. **quant-agent** → chart snapshot: SIGNAL (TREND/SCALP/EARLY/WATCH),
    CONFLUENCE x/6, Voodoo levels, Fireline/Treeline (ES1!), TIME window. Reads
    the AR Squeeze dashboard; trusts the script.
-2. **Flow agent** (subagent), pass it the SIGNAL → independent UW verdict:
+2. **flow-agent**, pass it the SIGNAL → independent UW verdict:
    CONFIRM / CONTRADICT / MIXED + GEX regime (pos gamma = fade extremes, neg =
    go with breaks).
-3. **RISK (main session rules):**
-   - Hard stop = exit at **−50% of premium paid** (pay $1,000 → cut at $500).
-   - Also exit on chart invalidation first: signal flip, VWAP lost, MON EXIT,
-     or 3:30 ET close-out.
+3. **decision-agent**, pass it the Quant snapshot + Flow verdict → applies the
+   risk rules and returns the gate result + trade plan:
+   - Hard stop = **−50% of premium paid** (pay $1,000 → cut at $500); also exit
+     on chart invalidation (signal flip, VWAP lost, MON EXIT, 3:30 close-out).
    - **Daily cap = 2 SPX trades. Two losses = done for the day.**
-   - Conviction by signal: **TREND** = full; **SCALP** = only if CONFLUENCE ≥3
-     and Flow not CONTRADICT; **EARLY** = prep only, do NOT enter until it
-     upgrades to SCALP/TREND or confluence builds ≥3.
-   - Time: entries only 9:45–2:30 ET, skip lunch 12–1, no new entries after 2:30.
-4. **VERIFY (main session gate) — independent greenlight:**
-   - **APPROVE** only if: real signal fired AND CONFLUENCE ≥3 AND Flow CONFIRMS
-     (or at least not CONTRADICT) AND inside time window AND under the daily cap.
-   - **APPROVE WITH CONCERNS** (smaller/tighter) if mixed.
-   - **REJECT** if Flow contradicts, confluence <3, EARLY-only, wrong time, or
-     daily cap hit. Tag any [MEMORY] assumption.
-5. **TRADE PLAN** (only if approved): direction (CALL/PUT) · 0DTE strike guidance
-   · entry trigger · TP = next Voodoo (R1/R2 calls, S1/S2 puts) · hard stop
-   = −50% premium · chart invalidation · "trade #_ of 2 today."
+   - Conviction: **TREND** = full; **SCALP** = only if CONFLUENCE ≥3 and Flow
+     not CONTRADICT; **EARLY** = prep only, never a live entry.
+   - Time: entries only 9:45–2:30 ET, skip lunch 12–1, none after 2:30.
+   - Verdict: **APPROVE** (all gates pass) / **APPROVE WITH CONCERNS** (mixed,
+     smaller) / **REJECT** (Flow contradicts, confluence <3, EARLY-only, wrong
+     time, or cap hit). Tag any [MEMORY] assumption.
+   - If approved → TRADE PLAN: CALL/PUT · 0DTE strike · entry trigger · TP =
+     next Voodoo (R1/R2 calls, S1/S2 puts) · stop −50% · "trade #_ of 2 today."
 
-Subagent files live in `.claude/agents/` (quant-agent, flow-agent). They load
-on-demand — they do not bloat every-session context.
+Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
+decision-agent). They load on-demand — they do not bloat every-session context.
 
 ## What is NOT the problem (verified, don't chase it)
 
