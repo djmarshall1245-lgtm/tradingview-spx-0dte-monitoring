@@ -140,6 +140,30 @@ Sequence the main session follows:
 Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
 decision-agent). They load on-demand — they do not bloat every-session context.
 
+## Robinhood MCP (official agentic trading)
+
+Server: `robinhood-trading` → `https://agent.robinhood.com/mcp/trading`
+(official, OAuth via `/mcp`). Use it for the STOCK side — NOT SPX 0DTE.
+
+Scope & safety:
+- **Equities only** right now. No options/crypto/futures (roadmap, later 2026).
+  Never route SPX 0DTE orders through it — that's the trade desk's job.
+- It can **read all accounts** but can only **trade in the agentic sub-account**
+  (••••3232). Keep that sandbox funded with **risk capital only**.
+- **Per-trade manual approval = ON.** Never enable auto-execute — an LLM with a
+  live trade button is the one thing to avoid.
+- Kill switches: `/mcp` → "Clear authentication" revokes access; the RH app has
+  an instant-shutoff.
+
+Best use = a read-only portfolio dashboard. Trigger:
+> "Read my Robinhood main account: portfolio health check — concentration risk,
+> biggest losers, margin/cash balance, positions bleeding or near-worthless.
+> Read-only, no trades. Tag [TOOL]."
+
+Managing existing option positions (e.g. into expiry): pull the live mark +
+P&L% vs what was paid, cross-check UW flow/GEX, then apply the **−50% premium
+stop** — CUT if at/below −50%, factor theta and distance to break-even.
+
 ## What is NOT the problem (verified, don't chase it)
 
 - **MCP servers are fine.** Their tools load **on-demand** (~4k tokens total),
