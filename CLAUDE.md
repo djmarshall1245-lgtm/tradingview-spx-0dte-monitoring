@@ -146,16 +146,18 @@ Server: `robinhood-trading` → `https://agent.robinhood.com/mcp/trading`
 (official, OAuth via `/mcp`). Use it for the STOCK side — NOT SPX 0DTE.
 
 Scope & safety:
-- **Equities only** right now. No options/crypto/futures (roadmap, later 2026).
-  Never route SPX 0DTE orders through it — that's the trade desk's job.
+- **Equities + SINGLE-LEG options** (verified via the live tool list — the
+  "equities only" press line is outdated). No spreads/multi-leg via MCP. Crypto
+  read-only. So it CAN execute SPX/SPY single-leg 0DTE calls/puts.
 - It can **read all accounts** but can only **trade in the agentic sub-account**
   (••••3232). Keep that sandbox funded with **risk capital only**.
 - **Per-trade manual approval = ON.** Never enable auto-execute — an LLM with a
-  live trade button is the one thing to avoid.
+  live trade button is the one thing to avoid. The desk decides, you approve,
+  THEN it places.
 - Kill switches: `/mcp` → "Clear authentication" revokes access; the RH app has
   an instant-shutoff.
 
-Best use = a read-only portfolio dashboard. Trigger:
+Read-only dashboard trigger:
 > "Read my Robinhood main account: portfolio health check — concentration risk,
 > biggest losers, margin/cash balance, positions bleeding or near-worthless.
 > Read-only, no trades. Tag [TOOL]."
@@ -163,6 +165,35 @@ Best use = a read-only portfolio dashboard. Trigger:
 Managing existing option positions (e.g. into expiry): pull the live mark +
 P&L% vs what was paid, cross-check UW flow/GEX, then apply the **−50% premium
 stop** — CUT if at/below −50%, factor theta and distance to break-even.
+
+### Single-leg 0DTE execution (SPX/SPY calls & puts)
+
+Runs ONLY after the decision-agent APPROVES. Sandbox ••••3232, manual approval,
+never auto-fire. This is the execution arm of the trade desk.
+
+PICK THE CONTRACT:
+1. `get_option_chains` on SPX (or SPXW) for today's 0DTE expiry. If Robinhood
+   doesn't list SPX index options on the account, fall back to **SPY** (≈1/10
+   SPX) — confirm with `get_option_chains` SPY.
+2. Strike = **ATM to 1-strike ITM** in the signal's direction (target delta
+   ~0.45–0.55) — moves with the underlying, NOT a far-OTM lotto. CALL at/above
+   spot, PUT at/below.
+3. `get_option_quotes`: check **bid/ask spread + delta + volume.** Wide/illiquid
+   → use SPY or skip. Don't pay a fat spread on 0DTE.
+
+PLACE IT (LIMIT, never market):
+4. Limit price = **mid** (or mid + 1 tick to fill). A market order on 0DTE gets
+   slipped.
+5. `review_option_order` → preview cost, buying power, fees. Show me.
+6. **MANUAL APPROVAL**, then `place_option_order` (single-leg, ••••3232).
+7. Size = my call (confirm contracts); per-trade risk is capped by the −50%
+   stop, not a fixed $.
+
+MANAGE & EXIT (every close also = review → approve → place):
+8. **TP** = next Voodoo (R1/R2 calls, S1/S2 puts) → sell-to-close limit at target.
+9. **Hard stop** = −50% of premium paid → sell-to-close immediately if hit.
+10. **Chart invalidation** (signal flip, VWAP lost, MON EXIT) or **3:30 ET** → exit.
+11. Log it as "trade #_ of 2 today." Two losses = done.
 
 ## What is NOT the problem (verified, don't chase it)
 
