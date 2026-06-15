@@ -56,11 +56,19 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
 ① OVERNIGHT / MACRO                       [TOOL] Firecrawl web (show URLs)
    /ES futures · VIX · 10Y yield · DXY · gold · crude — each w/ source URL
    Overnight high/low · gap vs prior close
+   → RISK read: oil + VIX + /ES direction together. Oil DOWN + VIX DOWN + ES UP
+     = risk-ON; the reverse = risk-OFF. On a news-driven gap, say whether it's
+     HOLDING or FADING (gaps fade — don't assume the overnight move sticks).
+   → Paste the day's macro CONTEXT here (event/deal/Fed) — keep it out of the
+     saved template so it never goes stale.
 
 ② KEY LEVELS                              [TOOL] TradingView  (two pulls)
    A) Voodoo levels (pivot S/R) — from my chart script:
       data_get_pine_labels, study_filter: "AR SQUEEZE"  (script visible on chart)
       List R3..PP..S3 high→low w/ price. These ARE on the chart.
+      → If price gapped overnight and the Voodoo inputs still show the prior
+        day's numbers, REMIND me to update R3..S3 before trading — stale levels
+        = wrong targets.
    B) Fireline / Treeline = /ES futures session high/low (NOT pivots, NOT labels —
       the AR Squeeze script does NOT plot these):
       data_get_ohlcv on ES1! (summary: true), then:
