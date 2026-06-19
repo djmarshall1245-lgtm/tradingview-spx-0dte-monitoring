@@ -19,8 +19,9 @@ ACCOUNT (real)
 - $1,000 Robinhood agentic sub-account ••••3232.
 - Goal: spin and grow, NOT gamble. Manual GO before every order.
 - Limit orders only, at mid.
-- PDT does NOT apply (parent Robinhood account is over $25k; this is a
-  risk-capital sub-account). Day-trade freely — same-day open+close OK.
+- PDT does NOT apply — FINRA eliminated the pattern-day-trader rule and
+  the $25k minimum effective June 4, 2026 (SEC approved Apr 14, 2026,
+  Reg Notice 26-10). Day-trade freely — same-day open+close, any count.
 
 INSTRUMENT
 - Liquid equity single-leg options, calls or puts (long or short bias).
