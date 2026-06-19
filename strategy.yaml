@@ -1,0 +1,79 @@
+version: v01
+owner: djmarshall1245@gmail.com
+go_live: 2026-06-22
+account:
+  broker: robinhood
+  subaccount: "****3232"
+  starting_capital_usd: 1000
+  capital_type: real
+
+instrument:
+  type: equity_options
+  legs: single_leg
+  side: [long_call, long_put]
+  universe: liquid_names_only
+  premium_per_contract_usd: [3.00, 5.00]
+
+direction:
+  allow_long: true
+  allow_short: true
+
+entry:
+  grade: "A+ only"
+  required_confluence:
+    - "Unusual Whales flow >= 6:1 (calls:puts or puts:calls in signal direction)"
+    - "gauge confirms direction"
+    - "chart aligned with signal"
+  all_three_required: true
+
+concurrency:
+  max_open_positions: 2
+
+exits:
+  take_profit_pct: [50, 100]
+  hard_stop_pct: -40
+  stop_exceptions: none
+  intent: "stack singles, no home runs"
+
+execution:
+  order_type: limit_only
+  limit_price: mid
+  workflow:
+    - "Claude finds setup"
+    - "Claude presents: ticker / strike / expiry / limit @ mid"
+    - "User says GO"
+    - "review_option_order (preview cost, BP, fees) — show user"
+    - "place_option_order (limit, single-leg, ****3232)"
+    - "confirm fill, log trade #"
+
+risk_controls:
+  per_trade_risk_target_pct: 2          # stated goal: ~$20 / trade
+  max_drawdown_pct: 10
+  daily_loss_cap_trades: 2              # 2 losses = done for the day (from CLAUDE.md)
+  weekly_review: true
+
+# ---------------------------------------------------------------------------
+# SIZING TENSION — read before going live 2026-06-22
+# ---------------------------------------------------------------------------
+# These three rules cannot all hold on a $1,000 account:
+#   (a) premium_per_contract_usd = $3-5  -> $300-500 per contract
+#   (b) hard_stop_pct = -40%             -> -$120 to -$200 per loser
+#   (c) per_trade_risk_target_pct = 2%   -> $20 max risk per trade
+#
+# At $4 premium with a -40% stop, one loser is -$160 = -16% of the account.
+# Two losers in a day (daily_loss_cap_trades) = -$320 = -32% drawdown,
+# which is 3x the stated max_drawdown_pct of 10%.
+#
+# Pick one reconciliation before live trading:
+#   1. Trade ~$1.00-1.50 premium contracts (-$40-60 per loser ~ 5% risk).
+#   2. Keep $3-5 premiums and raise max_drawdown_pct to match reality (~30%).
+#   3. Hold the $20/2% rule and trade ~$0.50 premium contracts (cheap/OTM).
+#   4. Fund the account to ~$3-5k so the math closes.
+# ---------------------------------------------------------------------------
+
+# Also unresolved (carry over from chat):
+# - reward:risk ratio: you said "3 to 1" but TP +50-100% vs stop -40%
+#   actually yields 1.25:1 to 2.5:1. TP band governs here until you say otherwise.
+# - hard stop: -40% (this file) supersedes the -50% in CLAUDE.md for equity
+#   options. SPX 0DTE rules in CLAUDE.md unchanged.
+# - no per-day or per-week trade-count cap beyond the 2-loss daily kill.
