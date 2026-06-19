@@ -19,8 +19,8 @@ ACCOUNT (real)
 - $1,000 Robinhood agentic sub-account ••••3232.
 - Goal: spin and grow, NOT gamble. Manual GO before every order.
 - Limit orders only, at mid.
-- PDT applies: cap of 3 day-trades per rolling 5 business days. Hold-overnight
-  if a same-day exit would tip me over.
+- PDT does NOT apply (parent Robinhood account is over $25k; this is a
+  risk-capital sub-account). Day-trade freely — same-day open+close OK.
 
 INSTRUMENT
 - Liquid equity single-leg options, calls or puts (long or short bias).
@@ -47,15 +47,11 @@ GATE 3 — CONCENTRATION (AI Pathways borrow):
   - No more than 1 open position per sector.
   - If a 2nd position would breach either → reject.
 
-GATE 4 — PDT SWING GUARD (mine):
-  - Count my day-trades in the last 5 business days from trades.jsonl.
-  - If this trade would be the 4th → either plan to HOLD OVERNIGHT or reject.
-
-GATE 5 — WEEK-1 CAP (mine):
+GATE 4 — WEEK-1 CAP (mine):
   - If today is in the first 5 trading days of going live, max 3 TOTAL
     trades for the week. Tell me how many I've used.
 
-GATE 6 — PRE-APPROVAL GUT CHECK (mine, replaces paper-mode):
+GATE 5 — PRE-APPROVAL GUT CHECK (mine, replaces paper-mode):
   - Before presenting, ask yourself: "Would I take this with my own money?"
     Say YES or NO and one sentence why. If NO, do not present it.
 
@@ -82,7 +78,6 @@ Read them. If anything is missing or unreadable, ASK — do NOT guess a number.
    Macro: PASS/FAIL — regime = ___
    A+:    PASS/FAIL — flow ratio = ___ : gauge = ___ : chart = ___
    Concentration: PASS/FAIL
-   PDT:   day-trades used in last 5 days = ___ / 3
    Week-1 cap (if applicable): used ___ / 3
    Gut:   YES/NO — "<one sentence>"
 
@@ -118,10 +113,6 @@ Read them. If anything is missing or unreadable, ASK — do NOT guess a number.
 - [x] `trade_desk_prompt.md` — this file
 - [ ] `trades.jsonl` — NOT created yet (empty file for the spine to log into)
 - [ ] `hypotheses.jsonl` — NOT created yet
-- [ ] PDT swing guard reflected in `strategy.yaml` v03 — recommended
 
-Want me to create the empty `trades.jsonl` + `hypotheses.jsonl` and cut
-`strategy.yaml` v03 with the PDT rule baked in? One-variable rule says
-v03 should change exactly ONE thing — adding the PDT cap (which is a
-constraint, not a new rule) is the right next bump. Reply GO and I'll do
-all three on this same branch.
+Want me to create the empty `trades.jsonl` + `hypotheses.jsonl` so the
+spine has somewhere to log? Reply GO and I'll add both on this branch.
