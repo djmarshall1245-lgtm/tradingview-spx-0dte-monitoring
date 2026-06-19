@@ -1,0 +1,7 @@
+# Local data + secrets — never commit
+data/monitor.db
+data/snapshots/*.json
+data/shots/*.png
+.env
+__pycache__/
+*.pyc

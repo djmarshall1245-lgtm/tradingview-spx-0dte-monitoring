@@ -1,0 +1,41 @@
+# config.yaml — knobs for the OBSERVE layer. Edit freely; no code changes.
+
+watchlist: [SPY, QQQ, NVDA, TSLA, AAPL]   # names the monitor tracks/news-scans
+
+macro_gate:                                # [YT#2] weights sum to 1.0
+  weights:
+    vix_level: 0.30
+    term_structure: 0.25                   # VIX vs VIX3M
+    breadth: 0.25                          # % of SPY constituents > 200d MA (proxy: SPY vs its 200d)
+    credit: 0.20                           # HYG vs TLT
+  risk_free_rate: 0.045
+
+analytics:
+  iv_lookback_days: 252
+  iv_min_history: 20                       # until then, label "building history"
+  iv_rich_above: 70
+  iv_cheap_below: 30
+  concentration_ticker_cap_pct: 40
+  concentration_sector_cap_pct: 60
+  dte_flag_days: 45                        # surface upcoming time-decay/roll (fact only)
+
+alerts:                                    # [YT#2] conditions, never buy/sell
+  target_near_pct: 80                      # within 80% of target -> info
+  iv_change_pct: 20                        # IV moved >= 20% vs prior snapshot -> warn
+  new_strike_band_pct: 30                  # only flag new strikes within +/-30% of holdings
+
+news:
+  window_days: 3
+  model: claude-opus-4-8                   # the one paid piece (Anthropic API)
+
+# ─────────────────────────────────────────────────────────────────────
+# Screenshot regions for lib/screenshot.py. [x, y, width, height] in screen
+# points. PLACEHOLDERS — calibrate once on your Mac (see README "Calibrate
+# screenshot regions"). Until then use `--window` to click-capture.
+# ─────────────────────────────────────────────────────────────────────
+screenshots:
+  regions:
+    chart: [0, 0, 1200, 800]               # TradingView chart pane
+    flow:  [1200, 0, 720, 500]             # Unusual Whales flow
+    gauge: [1200, 500, 720, 300]           # the gauge
+    chain: [0, 800, 1200, 280]             # options chain

@@ -1,0 +1,20 @@
+# positions.yaml — what you actually hold, with YOUR targets and stops.
+# The monitor values these live and tracks progress to target/stop. It NEVER
+# advises rolling or trading — it surfaces facts. Empty by default.
+#
+# Each entry:
+#   ticker, side (call/put), strike, expiry (YYYY-MM-DD),
+#   contracts, premium_paid (per contract),
+#   target_price, stop_price  (per-contract marks YOU set)
+#
+# Example (delete when you add real ones):
+# - ticker: NVDA
+#   side: call
+#   strike: 1300
+#   expiry: 2026-07-18
+#   contracts: 1
+#   premium_paid: 1.20
+#   target_price: 2.40       # +100%
+#   stop_price: 0.72         # -40%
+
+positions: []

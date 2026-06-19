@@ -1,0 +1,5 @@
+# OBSERVE-layer dependencies. Install on your Mac (see README).
+yfinance>=0.2.40
+pyyaml>=6.0
+anthropic>=0.40.0
+# Greeks, score, db, screenshot, alerts use only the Python standard library.
