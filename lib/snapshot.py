@@ -15,6 +15,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 
+import math
 from . import db as dbmod
 from . import greeks as gk
 
@@ -48,8 +49,8 @@ def pull_chain(ticker, asof: str):
                     "is_call": int(is_call), "bid": float(r.get("bid") or 0),
                     "ask": float(r.get("ask") or 0), "last": float(r.get("lastPrice") or 0),
                     "iv": float(r.get("impliedVolatility") or 0),
-                    "volume": int(r.get("volume") or 0),
-                    "open_interest": int(r.get("openInterest") or 0),
+                    "volume": 0 if (v := r.get("volume")) is None or (isinstance(v, float) and math.isnan(v)) else int(v),
+                    "open_interest": 0 if (oi := r.get("openInterest")) is None or (isinstance(oi, float) and math.isnan(oi)) else int(oi),
                     "mark": mark, "dte": dte, "spot": spot,
                 })
     return spot, rows
