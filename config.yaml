@@ -26,7 +26,34 @@ alerts:                                    # [YT#2] conditions, never buy/sell
 
 news:
   window_days: 3
-  model: claude-opus-4-8                   # the one paid piece (Anthropic API)
+  # No API key needed. Free headline feed = yfinance .news. Enrichment +
+  # summarization happens inside Claude Code (your subscription) using
+  # Firecrawl + UW MCP tools — see prompts/morning_brief.md.
+  free_sources:                            # vetted, reliable, no paywall
+    economic_calendar:
+      - "https://www.investing.com/economic-calendar/"
+      - "https://www.forexfactory.com/calendar"
+    earnings_calendar:
+      - "https://finance.yahoo.com/calendar/earnings"
+      - "https://www.nasdaq.com/market-activity/earnings"
+    market_news:
+      - "https://www.reuters.com/markets/"
+      - "https://www.cnbc.com/markets/"
+      - "https://www.marketwatch.com/"
+      - "https://finance.yahoo.com/news/"
+      - "https://apnews.com/hub/financial-markets"
+    macro_data:
+      - "https://fred.stlouisfed.org/"           # Fed economic data
+      - "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html"
+      - "https://www.treasury.gov/resource-center/data-chart-center/"
+    options_data:
+      - "https://www.cboe.com/"
+      - "https://marketchameleon.com/"
+    company_filings:
+      - "https://www.sec.gov/edgar/searchedgar/companysearch"
+    geopolitics:
+      - "https://www.reuters.com/world/"
+      - "https://apnews.com/hub/world-news"
 
 # ─────────────────────────────────────────────────────────────────────
 # Screenshot regions for lib/screenshot.py. [x, y, width, height] in screen

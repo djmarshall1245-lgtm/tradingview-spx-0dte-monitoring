@@ -90,18 +90,20 @@ def cmd_brief(asof):
     except Exception as e:
         print(f"② BOOK / ③ ALERTS unavailable: {e}")
 
-    # 4) per-name news
+    # 4) per-name headlines (raw — Claude Code summarizes via Firecrawl/UW MCP)
     try:
         from lib import news
         n_cfg = cfg.get("news", {})
-        print("\n④ PER-NAME NEWS")
-        for t in (positions and [p["ticker"] for p in positions]) or watch:
-            r = news.analyze(t, n_cfg.get("model", "claude-opus-4-8"),
-                             n_cfg.get("window_days", 3), asof)
-            flag = " ⚑POSITION" if r.get("position_flag") else ""
-            print(f"  {t}: [{r.get('sentiment')}]{flag} {r.get('summary')}")
+        names = (positions and [p["ticker"] for p in positions]) or watch
+        print("\n④ HEADLINES (raw — paste into Claude Code w/ morning_brief.md "
+              "to get Firecrawl-enriched summaries)")
+        for t in names:
+            hs = news.headlines(t, n_cfg.get("window_days", 3))
+            print(f"  {t}: {len(hs)} headlines")
+            for h in hs[:3]:
+                print(f"    - {h['title']} ({h['publisher']})")
     except Exception as e:
-        print(f"④ NEWS unavailable (needs ANTHROPIC_API_KEY): {e}")
+        print(f"④ HEADLINES unavailable: {e}")
 
     print("\n⑤ No trade calls here. Take a setup to the trade desk — you are the GO.")
 

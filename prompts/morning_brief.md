@@ -1,38 +1,58 @@
 # Morning Brief — daily monitor (OBSERVE layer, never trades)
 
-Run pre-open. Combines your existing SPX brief discipline with AI Pathways'
-per-name news + macro score. Reports CONDITIONS and FACTS — never buy/sell.
+Run pre-open. Combines the deterministic Python skeleton (macro / book / alerts)
+with Claude Code's MCP tools (Firecrawl for news, UW for flow). Reports
+CONDITIONS and FACTS — never buy/sell.
 
-Two ways to run:
-  • Manual: paste the block below into terminal Claude Code.
-  • Automated: `python run.py --brief` (uses lib/ + data/monitor.db). See README.
+Two-step flow:
+  1. In terminal:  `python run.py --brief`   ← prints macro/book/alerts/headlines
+  2. Then paste the block below into Claude Code so Claude enriches the
+     headlines via Firecrawl and pulls flow context via UW.
 
 ---
 
 ```
-Give me my morning brief. Tag every fact [TOOL]/[STALE]/[MEMORY]. Show source
-URLs for news. Re-pull live; never reuse a cached file for today's numbers.
+Give me my morning brief. Read my data:
+  • run.py --brief output (paste below, or just run it yourself)
+  • config.yaml watchlist + positions.yaml positions
+  • data/monitor.db for stored snapshots / valuations
 
-① MACRO SCORE (deterministic, 0-100) — from lib/macro_gate.py:
-   VIX level + 1yr percentile · VIX/VIX3M term structure · breadth (%SPY
-   above 200d MA) · credit (HYG-TLT). Same data in, same score out.
-   -> One number + the regime it implies. NOT a trade trigger.
+Tag every fact [TOOL]/[STALE]/[MEMORY]. Show source URLs for news.
+Re-pull live; never reuse cached files for today's numbers.
 
-② BOOK HEALTH (if I hold anything) — from lib/snapshot.py / monitor.db:
-   Per position: mark, value, $/% P&L, DTE, delta, theta/day, vega, IV,
-   IV rank (from my own snapshots), progress to MY target / MY stop.
-   Aggregate: net delta, total daily theta bleed, net vega, allocation by
-   ticker & sector + concentration flags (>40% ticker / >60% sector).
+① MACRO SCORE — already in run.py --brief output. Just paste it here.
+   0-100 deterministic score from VIX + term structure + breadth + credit.
+   NOT a trade trigger; it tags the regime the book sits in.
 
-③ CONDITION ALERTS (facts, never instructions) — from lib/alerts.py:
-   target_hit · stop_hit · target_near (80%) · iv_change (>=20%) ·
-   new_strikes · new_expiry. Phrase like "NOK calls hit your target level."
+② BOOK HEALTH — already in run.py --brief. Per position: mark, P&L, DTE,
+   delta, theta/day, IV rank (from my own snapshots), progress to MY target /
+   MY stop. Aggregate Greeks and concentration flags.
 
-④ PER-NAME NEWS (the one paid piece) — from lib/news.py, cached per day:
-   For each held name: 3-day headline summary, sentiment, key drivers, and a
-   flag for anything that hits my position. Claude summarizes — never says
-   buy/sell. Show source URLs.
+③ CONDITION ALERTS — already in run.py --brief. Facts, never instructions.
+   Phrase like "NOK calls hit your target level."
 
-⑤ SUMMARY: macro regime + which positions need eyes today. No trade calls —
-   that's the trade desk's job, with my GO.
+④ PER-NAME NEWS — your job. For each name in my watchlist + positions:
+   - Read the raw headlines from run.py --brief output.
+   - Use FIRECRAWL MCP to pull the full text of the most material 1-2 stories.
+     Prefer the FREE SOURCES in config.yaml → news.free_sources
+     (Reuters, AP, CNBC, MarketWatch, Yahoo Finance, FRED, SEC EDGAR,
+     Cboe, MarketChameleon, CME FedWatch, investing.com calendar).
+     Cite the URL each time.
+   - Return: 2-sentence summary, sentiment (positive/neutral/negative),
+     key drivers, and a flag if anything materially hits an open position.
+   - NEVER say buy or sell. Summarize only.
+
+⑤ FLOW CONTEXT — your job, via UNUSUAL WHALES MCP:
+   For each held position (and any name on my watchlist that has a hot setup):
+   - get_market_state for the current regime read
+   - get_greek_exposure_by_strike for GEX walls near the strike
+   - get_dark_pool_trades for biggest prints + lean
+   - get_max_pain to see where dealers are pinned
+   Phrase as conditions, not calls.
+
+⑥ SUMMARY:
+   - Macro regime + score (one line)
+   - Positions that need eyes today (target/stop near, IV change, news flag)
+   - Watchlist names with a setup forming (flow + news aligned)
+   - End with: "No trade calls — that's the trade desk's job, with your GO."
 ```

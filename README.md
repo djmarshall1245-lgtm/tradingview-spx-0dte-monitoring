@@ -30,9 +30,11 @@ is NOT the goal — with −40% stops it can lose money at 90% win rate.)
 cd ~/path/to/tradingview-spx-0dte-monitoring
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=sk-...        # only needed for per-name news
 python run.py --score                  # sanity check (works with zero deps)
 ```
+**No API keys needed.** Claude Code uses your existing subscription; the
+per-name news enrichment runs through your Firecrawl + Unusual Whales MCPs
+inside the morning-brief prompt — see `prompts/morning_brief.md`.
 > The remote/web Claude session can't run the live data layer — it's a
 > headless Linux container with no market access and no display. Live runs
 > (`--brief`, `--snapshot`, `--shot`) happen here on your Mac.

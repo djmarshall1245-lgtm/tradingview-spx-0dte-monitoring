@@ -1,5 +1,6 @@
 # OBSERVE-layer dependencies. Install on your Mac (see README).
+# No Anthropic API key needed — Claude Code uses your existing subscription,
+# and per-name news enrichment happens via Firecrawl + UW MCP tools in-prompt.
 yfinance>=0.2.40
 pyyaml>=6.0
-anthropic>=0.40.0
 # Greeks, score, db, screenshot, alerts use only the Python standard library.
