@@ -37,6 +37,40 @@ Then read my data:
 Tag every fact [TOOL]/[STALE]/[MEMORY]. Show source URLs for news.
 Re-pull live; never reuse cached files for today's numbers.
 
+═══════════════════════════════════════════════════════════════════════
+ANTI-FABRICATION RULES — read before writing a single number
+═══════════════════════════════════════════════════════════════════════
+
+RULE 1 — SOURCE OR OMIT. Any number you write (price, %, P/E, EPS, YTD,
+revenue, target, calendar date) MUST be one of:
+  (a) [TOOL] with the source URL AND a quoted snippet from the actual page,
+      OR
+  (b) [NO DATA] — say so explicitly. Do NOT fill from memory to keep the
+      brief looking complete.
+A [TOOL] tag without a URL and a verbatim snippet is a bug. Fabrication
+of a single number invalidates the whole brief and is the worst possible
+failure mode (per CLAUDE.md trading-safety rules).
+
+RULE 2 — SANITY-CHECK BEFORE POSTING. Before you submit each section,
+self-verify:
+  - Day-of-week matches the date (e.g. 2026-06-25 is a Thursday, not Wed).
+  - P/E × EPS ≈ price (catches phantom price/multiple math).
+  - YTD% × start-of-year price ≈ current price.
+  - Any "up X% since Y" claim has a verifiable Y price.
+If a check fails, the number is wrong — don't post it; mark [NO DATA].
+
+RULE 3 — FIRECRAWL DISCIPLINE. One Firecrawl call per name; if it returns
+nothing material, the per-name news block for that ticker is:
+   "<TICKER>: [NO DATA] (Firecrawl returned no material story today)."
+Do NOT pad with general-knowledge color about the company. The whole point
+of Firecrawl is sourced specificity. No source = no claim.
+
+RULE 4 — UW STALENESS. If today is a weekend or holiday, UW data is from
+the last trading day. Tag every UW number [STALE <date>]. Do not present
+stale data as if it were today's flow.
+
+═══════════════════════════════════════════════════════════════════════
+
 ① MACRO SCORE — already in run.py --brief output. Just paste it here.
    0-100 deterministic score from VIX + term structure + breadth + credit.
    NOT a trade trigger; it tags the regime the book sits in.
@@ -72,4 +106,11 @@ Re-pull live; never reuse cached files for today's numbers.
    - Positions that need eyes today (target/stop near, IV change, news flag)
    - Watchlist names with a setup forming (flow + news aligned)
    - End with: "No trade calls — that's the trade desk's job, with your GO."
+
+⑦ DO NOT TRADE UNTIL YOU VERIFY (MANDATORY — never skip):
+   Produce a table listing EVERY claim above tagged [MEMORY], [STALE], or
+   [NO DATA]. For each: (a) the claim, (b) the tag, (c) how to verify it
+   pre-open. If this section is empty, you must explicitly write:
+   "All facts above are [TOOL]-sourced this session — nothing to verify."
+   Brief is INCOMPLETE without this section. Do not finalize without it.
 ```
