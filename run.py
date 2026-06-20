@@ -120,15 +120,16 @@ def main():
     ap.add_argument("--asof", default=None)
     args = ap.parse_args()
 
+    ran = False
+    if args.shot is not None or args.window or args.full:
+        cmd_shot(args); ran = True
+    if args.snapshot:
+        cmd_snapshot(args.asof); ran = True
     if args.score:
-        cmd_score()
-    elif args.shot is not None or args.window or args.full:
-        cmd_shot(args)
-    elif args.snapshot:
-        cmd_snapshot(args.asof)
-    elif args.brief:
-        cmd_brief(args.asof)
-    else:
+        cmd_score(); ran = True
+    if args.brief:
+        cmd_brief(args.asof); ran = True
+    if not ran:
         ap.print_help()
 
 
