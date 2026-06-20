@@ -1,3 +1,14 @@
+---
+name: morning-brief
+description: Daily pre-open monitor — macro score, book health, alerts, per-name news + flow
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [trading, monitor, premarket, observe]
+    category: trading
+    requires_tools: [unusualwhales, firecrawl]
+---
+
 # Morning Brief — daily monitor (OBSERVE layer, never trades)
 
 Run pre-open. Combines the deterministic Python skeleton (macro / book / alerts)
@@ -12,7 +23,13 @@ Two-step flow:
 ---
 
 ```
-Give me my morning brief. Read my data:
+Give me my morning brief.
+
+STEP 0 — READ THE YAML FIRST: read strategy/strategy.yaml, strategy/goal.yaml,
+and config.yaml watchlist before anything. Files are the source of truth — if
+a recap disagrees with disk, THE FILE WINS.
+
+Then read my data:
   • run.py --brief output (paste below, or just run it yourself)
   • config.yaml watchlist + positions.yaml positions
   • data/monitor.db for stored snapshots / valuations

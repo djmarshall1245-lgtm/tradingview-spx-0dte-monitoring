@@ -1,3 +1,13 @@
+---
+name: friday-loop
+description: Weekly reflection — score expectancy, evaluate hypothesis, propose one-variable change
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [trading, reflection, learning, weekly]
+    category: trading
+---
+
 # Friday Loop — weekly reflection (the LEARN layer)
 
 Trigger C: run this whenever **either** is true —
@@ -11,8 +21,14 @@ only (keeps the run cheap; reflection is about the past, not the present).
 ---
 
 ```
-You are running the HERMES weekly reflection loop. Read strategy/goal.yaml,
-strategy/strategy.yaml, journal/trades.jsonl, journal/hypotheses.jsonl.
+You are running the HERMES weekly reflection loop.
+
+STEP 0 — READ THE YAML FIRST: read strategy/goal.yaml, strategy/strategy.yaml,
+journal/trades.jsonl, journal/hypotheses.jsonl. The files are the single
+source of truth — if your recap disagrees with disk, THE FILE WINS. Confirm
+the current objective (expectancy) and the hard_rails_locked list before you
+propose any change.
+
 Tag every claim [TOOL]/[STALE]/[MEMORY].
 
 STEP 1 — COMPUTE (use lib/score.py logic):
