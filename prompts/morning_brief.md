@@ -136,4 +136,25 @@ stale data as if it were today's flow.
    pre-open. If this section is empty, you must explicitly write:
    "All facts above are [TOOL]-sourced this session — nothing to verify."
    Brief is INCOMPLETE without this section. Do not finalize without it.
+
+⑧ TOOL RECEIPT (MANDATORY — output is INVALID without this):
+   Required tools for this task (from SKILL.md frontmatter):
+     - run.py (python, terminal-side)
+     - firecrawl  (per-name news enrichment)
+     - unusualwhales  (flow + max pain + GEX + dark pool)
+   Produce a receipt for EACH:
+     ✅ CALLED <tool> at <approx time>: <evidence — actual value, URL, or
+        verbatim snippet pulled. Not "I called it" — show the FRUIT.>
+     ❌ NOT CALLED <tool>: required but skipped. THIS VOIDS THE OUTPUT.
+        Halt, tell me, do not ship a partial brief tagged as complete.
+     ➖ N/A <tool>: explicitly say WHY the tool was not needed for THIS
+        specific brief (e.g. "no positions, no per-name news for held").
+        Vague reasons = failure.
+
+   ANTI-DRIFT RULE (Karpathy discipline): you are FORBIDDEN from
+   substituting one tool with another (web_search instead of Firecrawl,
+   memory instead of UW). Each required tool is called by name or the
+   output is voided. No "I'll use my training instead." No "let me
+   summarize from what I know." If a tool isn't available, halt; do not
+   work around it.
 ```

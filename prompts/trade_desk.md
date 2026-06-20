@@ -67,4 +67,27 @@ GIVE ME BACK:
    cost_usd, regime, gates_passed, strategy_version, hypothesis_id, notes.
 5. IF ANY GATE FAILS: "no A+ setup, stand down" + which gate. Never force a
    trade. Never suggest a workaround that bypasses a gate.
+
+6. TOOL RECEIPT (MANDATORY — output is INVALID without this):
+   Required tools (from SKILL.md frontmatter):
+     - unusualwhales       (flow ratio for the A+ gate)
+     - robinhood-trading   (review_option_order + place_option_order)
+     - tradingview         (chart confluence for the A+ gate, if used)
+   Produce a receipt for EACH:
+     ✅ CALLED <tool> at <time>: <evidence — actual value or order preview>
+     ❌ NOT CALLED <tool>: required but skipped. VOIDS THE PROPOSAL. Halt.
+     ➖ N/A <tool>: explicit reason (e.g. "robinhood-trading not called —
+        no GO yet, only proposing conditions"). Vague = failure.
+
+   ANTI-DRIFT RULE (no exceptions): you are FORBIDDEN from substituting a
+   required tool with another, with memory, or with general knowledge.
+   - UW flow ratio MUST come from a live unusualwhales call. Not "based on
+     typical 6:1 patterns in tech." Not "from the morning brief 2 hours ago."
+     Re-pull at signal.
+   - Order preview MUST come from robinhood-trading.review_option_order.
+     Not "approximate cost will be ~$125." Show the actual preview.
+   - Chart confluence MUST come from a tradingview pull or my screenshot.
+     Not "based on what tech charts usually look like at this level."
+   If a required tool isn't available, halt — do not work around it. A
+   proposal without live tool evidence is gambling, not trading.
 ```
