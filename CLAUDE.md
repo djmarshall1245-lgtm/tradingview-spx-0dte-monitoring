@@ -48,6 +48,35 @@ servers won't show up in context until a prompt triggers them. That's
 fine. The /mcp check confirms they're AVAILABLE — the prompts handle
 loading them when needed (`requires_tools` in each SKILL.md frontmatter).
 
+## DATE & TIME DISCIPLINE — applies to EVERY output, no exceptions
+
+Every date you state must be paired with the CORRECT day-of-week, computed
+from the calendar — never guessed. Examples of the failure this prevents
+(observed in this repo):
+
+- "Expires Monday (June 26)" — WRONG. June 26, 2026 is a Friday. Monday
+  is June 22. That mistake compressed a 5-trading-day decision window
+  into 1 day = forced panic.
+- "Wednesday 6/25, Tuesday 6/24" — WRONG weekdays for those dates. PCE
+  on Wednesday when the calendar actually placed it Friday = positioning
+  for the wrong day.
+
+RULES:
+1. Run `date` in the terminal (or use a tool) to anchor "today" before
+   ANY output that references dates. State today in the output: "Today
+   is <weekday> <YYYY-MM-DD>."
+2. Any date you mention must include the verified day-of-week:
+   "expires Fri 2026-06-26 (5 trading days)" — not "expires Monday."
+3. If unsure of a day-of-week, say "<date — day to verify>" and don't
+   guess. Better to admit uncertainty than to ship a wrong day.
+4. After writing, self-check: does each stated weekday match the date?
+   If any mismatch, the output is INVALID and must be corrected before
+   you ship it. This is the same class of failure as fabricating a price
+   — wrong dates lead to wrong decisions on real money.
+
+This rule outranks anything in a SKILL.md prompt and applies to portfolio
+read-outs, briefs, trade proposals, weekend recaps — every output.
+
 ## Keep-it-lean checklist
 
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost
