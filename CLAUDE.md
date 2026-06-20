@@ -3,6 +3,25 @@
 Trading workspace for supervising a SPX/SPY 0DTE Pine Script on TradingView
 Desktop. This file keeps Claude Code lean so it stays sharp during sessions.
 
+## START-OF-SESSION RULE — read the YAML first, ALWAYS
+
+Before answering ANY trading question, proposing ANY setup, or summarizing
+ANY rule, **read these two files and treat them as the single source of
+truth**:
+
+  1. `strategy/strategy.yaml`  ← current playbook (gates, exits, premium band)
+  2. `strategy/goal.yaml`      ← objective, drawdown limits, account floor
+
+If your memory/recap disagrees with what's on disk, **the file wins.**
+Cite the actual values back to me before proposing anything (premium band,
+stop %, flow ratio, max positions). This is why the spine is versioned —
+it exists so verbal drift can't override the rules.
+
+Also read `config.yaml` for the watchlist + sector map before any
+concentration check. Do not invent sub-rules ("ASK-side", "ascending fills",
+"3+ alerts") that aren't in `strategy.yaml`. New rules go in via the Friday
+loop with my GO, never via a recap.
+
 ## Keep-it-lean checklist
 
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost

@@ -1,6 +1,37 @@
 # config.yaml — knobs for the OBSERVE layer. Edit freely; no code changes.
 
-watchlist: [SPY, QQQ, NVDA, TSLA, AAPL]   # names the monitor tracks/news-scans
+# 12 vetted liquid names — penny-wide spreads, deep options chains, heavy
+# UW flow, news-rich. Sized so concentration rule (1/sector) is meaningful.
+watchlist:
+  - SPY     # broad index
+  - QQQ     # Nasdaq index
+  - IWM     # small caps
+  - NVDA    # semis (mega-flow)
+  - AMD     # semis (alt)
+  - AAPL    # mega hardware
+  - MSFT    # mega software
+  - META    # comm services
+  - GOOGL   # comm services (alt)
+  - AMZN    # consumer disc (e-com)
+  - TSLA    # consumer disc (auto/EV) — high vol, news-rich
+  - XLF     # financials sector
+
+# Sector tags used by the concentration gate (strategy.yaml gates.concentration).
+# Granularity chosen so 1 mag-7 position doesn't lock out all the others, but
+# clear correlation pairs (NVDA+AMD, META+GOOGL, AMZN+TSLA) DO block each other.
+sector_map:
+  SPY: index
+  QQQ: index
+  IWM: index
+  NVDA: semis
+  AMD: semis
+  AAPL: hardware_tech
+  MSFT: software_tech
+  META: comm_services
+  GOOGL: comm_services
+  AMZN: consumer_disc
+  TSLA: consumer_disc
+  XLF: financials
 
 macro_gate:                                # [YT#2] weights sum to 1.0
   weights:
