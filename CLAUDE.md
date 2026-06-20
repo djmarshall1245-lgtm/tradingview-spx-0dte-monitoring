@@ -22,6 +22,32 @@ concentration check. Do not invent sub-rules ("ASK-side", "ascending fills",
 "3+ alerts") that aren't in `strategy.yaml`. New rules go in via the Friday
 loop with my GO, never via a recap.
 
+## START-OF-SESSION RULE — verify MCP tools BEFORE any trading action
+
+Right after reading the YAML files, run `/mcp` and confirm all four of
+these servers show **connected** (not `needs authentication`, not missing):
+
+  1. `tradingview`        — chart reads (TradingView MCP)
+  2. `unusualwhales`      — institutional flow, GEX, dark pool, max pain
+  3. `firecrawl`          — news enrichment per held name
+  4. `robinhood-trading`  — order preview + placement (sub ****3232)
+
+If ANY are missing or unauthenticated, HALT and tell me which:
+
+> "MCP CHECK FAILED — <server> is <missing | needs authentication>.
+>  Cannot proceed with morning brief / trade desk until fixed."
+
+Do not try to substitute one tool for another (no "I'll use web search
+instead of Firecrawl") and do not present a brief that silently lacks
+flow or news data. A trading system reporting partial data without saying
+so is the false-confidence failure mode — same class as the stale UW
+tables on 2026-06-20.
+
+Tool-loading is lazy by design (saves ~4k tokens/session), so connected
+servers won't show up in context until a prompt triggers them. That's
+fine. The /mcp check confirms they're AVAILABLE — the prompts handle
+loading them when needed (`requires_tools` in each SKILL.md frontmatter).
+
 ## Keep-it-lean checklist
 
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost
