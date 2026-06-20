@@ -93,13 +93,36 @@ stale data as if it were today's flow.
      key drivers, and a flag if anything materially hits an open position.
    - NEVER say buy or sell. Summarize only.
 
-⑤ FLOW CONTEXT — your job, via UNUSUAL WHALES MCP:
-   For each held position (and any name on my watchlist that has a hot setup):
-   - get_market_state for the current regime read
-   - get_greek_exposure_by_strike for GEX walls near the strike
-   - get_dark_pool_trades for biggest prints + lean
-   - get_max_pain to see where dealers are pinned
-   Phrase as conditions, not calls.
+⑤ FLOW CONTEXT — your job, via UNUSUAL WHALES MCP.
+
+   STALENESS DISCIPLINE (mandatory — applies to every UW call):
+
+   FLOW DATA goes stale the moment a session ends. If the market hasn't
+   opened today, DO NOT decompose/present it as if it were today's flow:
+   - get_market_state (P/C, call/put premium): pre-open / weekend / holiday
+     -> write: "NO LIVE FLOW — awaiting open." That's the whole section.
+     Do not pull last session's numbers and dress them up in tables.
+   - get_dark_pool_trades: pre-open -> ONE LINE max:
+     "Last major prints were <date> at <level> — not actionable today."
+     No tables. No "biggest blocks" decomposition.
+   - market tide: pre-open -> ONE LINE max:
+     "Prior session was call/put dominant" — no per-hour decomposition,
+     no bullish/bearish conclusions drawn from yesterday's tide.
+
+   POSITIONAL DATA is "state as of last close" — that IS the freshest
+   available. Tag [CURRENT as of <last close date>], not [STALE]:
+   - get_max_pain for FORWARD expiries (expiry > today): still current,
+     dealers are still pinned to those strikes. Present normally.
+   - get_greek_exposure_by_strike: current state of dealer positioning.
+     Present normally.
+   - get_open_interest_changes: current OI state. Present normally.
+
+   INTRADAY (market open + > 15 min in): pull all freely, tag [TOOL].
+
+   Per held position (and watchlist names with a forming setup), call the
+   UW tools above. Phrase as conditions, not trade calls. NEVER fill a UW
+   gap with general-knowledge color from training data — that's the
+   fabrication failure RULE 3 forbids.
 
 ⑥ SUMMARY:
    - Macro regime + score (one line)
