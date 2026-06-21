@@ -207,8 +207,9 @@ Sequence the main session follows:
    go with breaks).
 3. **decision-agent**, pass it the Quant snapshot + Flow verdict → applies the
    risk rules and returns the gate result + trade plan:
-   - Hard stop = **−50% of premium paid** (pay $1,000 → cut at $500); also exit
-     on chart invalidation (signal flip, VWAP lost, MON EXIT, 3:30 close-out).
+   - Hard stop = **see `strategy/strategy.yaml.exits.hard_stop_pct` (currently
+     −40%)** — file is source of truth; also exit on chart invalidation
+     (signal flip, VWAP lost, MON EXIT, 3:30 close-out).
    - **Daily cap = 2 SPX trades. Two losses = done for the day.**
    - Conviction: **TREND** = full; **SCALP** = only if CONFLUENCE ≥3 and Flow
      not CONTRADICT; **EARLY** = prep only, never a live entry.
@@ -217,7 +218,8 @@ Sequence the main session follows:
      smaller) / **REJECT** (Flow contradicts, confluence <3, EARLY-only, wrong
      time, or cap hit). Tag any [MEMORY] assumption.
    - If approved → TRADE PLAN: CALL/PUT · 0DTE strike · entry trigger · TP =
-     next Voodoo (R1/R2 calls, S1/S2 puts) · stop −50% · "trade #_ of 2 today."
+     next Voodoo (R1/R2 calls, S1/S2 puts) · stop per `strategy.yaml`
+     (currently −40%) · "trade #_ of 2 today."
 
 Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
 decision-agent). They load on-demand — they do not bloat every-session context.
@@ -245,8 +247,9 @@ Read-only dashboard trigger:
 > Read-only, no trades. Tag [TOOL]."
 
 Managing existing option positions (e.g. into expiry): pull the live mark +
-P&L% vs what was paid, cross-check UW flow/GEX, then apply the **−50% premium
-stop** — CUT if at/below −50%, factor theta and distance to break-even.
+P&L% vs what was paid, cross-check UW flow/GEX, then apply the **stop from
+`strategy.yaml.exits.hard_stop_pct` (currently −40%)** — CUT if at/below the
+stop, factor theta and distance to break-even.
 
 ### Single-leg 0DTE execution (SPX/SPY calls & puts)
 
@@ -268,12 +271,13 @@ PLACE IT (LIMIT, never market):
    slipped.
 5. `review_option_order` → preview cost, buying power, fees. Show me.
 6. **MANUAL APPROVAL**, then `place_option_order` (single-leg, ••••3232).
-7. Size = my call (confirm contracts); per-trade risk is capped by the −50%
-   stop, not a fixed $.
+7. Size = my call (confirm contracts); per-trade risk is capped by
+   `strategy.yaml.exits.hard_stop_pct` (currently −40%), not a fixed $.
 
 MANAGE & EXIT (every close also = review → approve → place):
 8. **TP** = next Voodoo (R1/R2 calls, S1/S2 puts) → sell-to-close limit at target.
-9. **Hard stop** = −50% of premium paid → sell-to-close immediately if hit.
+9. **Hard stop** = `strategy.yaml.exits.hard_stop_pct` (currently −40%) →
+   sell-to-close immediately if hit.
 10. **Chart invalidation** (signal flip, VWAP lost, MON EXIT) or **3:30 ET** → exit.
 11. Log it as "trade #_ of 2 today." Two losses = done.
 
