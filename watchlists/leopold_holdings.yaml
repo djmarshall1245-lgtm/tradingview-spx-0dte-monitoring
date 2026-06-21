@@ -1,0 +1,222 @@
+# Leopold Aschenbrenner — Situational Awareness LP
+# Source: 13F filing Q1 2026 (positions as of March 31, 2026, filed May 15, 2026)
+# Fund AUM: ~$9.3B (est.) | Stock holdings: $3.85B | 34 stocks
+# Thesis: AI infrastructure — power, data centers, networking, chips
+# References: stockcircle.com, whalewisdom.com, quiverquant.com
+
+created: 2026-06-19
+last_updated: 2026-06-19
+filing_date: 2026-03-31
+
+# ─────────────────────────────────────────────────────────────────────
+# LONG POSITIONS (sorted by portfolio weight)
+# ─────────────────────────────────────────────────────────────────────
+longs:
+  - ticker: BE
+    name: Bloom Energy
+    sector: AI Power / Fuel Cells
+    pct_of_portfolio: 22.80
+    holdings_usd: 878_707_930
+    shares: 6_485_408
+    q1_change: "Sold 35.6% (trimmed)"
+
+  - ticker: SNDK
+    name: Sandisk (WDC spinoff)
+    sector: Storage / Memory
+    pct_of_portfolio: 18.80
+    holdings_usd: 724_363_205
+    shares: 1_140_119
+    q1_change: "Added 8.15%"
+
+  - ticker: CRWV
+    name: CrowdStrike (or CoreWeave — verify)
+    sector: AI Cloud / Infrastructure
+    pct_of_portfolio: 14.43
+    holdings_usd: 556_073_385
+    shares: 7_177_919
+    q1_change: "Added 17.69%"
+
+  - ticker: IREN
+    name: Iris Energy
+    sector: AI Data Center / Power
+    pct_of_portfolio: 10.41
+    holdings_usd: 401_036_064
+    shares: 11_698_835
+    q1_change: "Added 34.5%"
+
+  - ticker: CORZ
+    name: Core Scientific
+    sector: AI Data Center / Mining
+    pct_of_portfolio: 10.10
+    holdings_usd: 389_086_756
+    shares: 26_008_473
+    q1_change: "Sold 9.6% (trimmed)"
+
+  - ticker: APLD
+    name: Applied Digital
+    sector: AI Data Center
+    pct_of_portfolio: 8.30
+    holdings_usd: 319_978_118
+    shares: 13_478_438
+    q1_change: "Added 18.9%"
+
+  - ticker: RIOT
+    name: Riot Platforms
+    sector: Data Center / Mining
+    pct_of_portfolio: 3.69
+    holdings_usd: 142_166_413
+    shares: 11_502_137
+    q1_change: "Added 86.5%"
+
+  - ticker: CLSK
+    name: CleanSpark
+    sector: Data Center / Mining
+    pct_of_portfolio: 2.71
+    holdings_usd: 104_469_943
+    shares: 12_276_139
+    q1_change: "Added 648% (massive add)"
+
+  - ticker: SEI
+    name: Sei Network
+    sector: Crypto / L1
+    pct_of_portfolio: 1.62
+    holdings_usd: 62_474_687
+    shares: 1_105_551
+    q1_change: "Sold 40.8% (trimmed)"
+
+  - ticker: TE
+    name: T1 Energy
+    sector: AI Power / Energy
+    pct_of_portfolio: 1.14
+    holdings_usd: 43_900_000
+    shares: 10_000_000
+    q1_change: "NEW position"
+
+  - ticker: BITF
+    name: Bitfarms
+    sector: Data Center / Mining
+    pct_of_portfolio: ~1.0
+    holdings_usd: null
+    shares: null
+    q1_change: "Added 188%"
+
+  - ticker: BTDR
+    name: Bitdeer Technologies
+    sector: Data Center / Mining
+    pct_of_portfolio: ~1.0
+    holdings_usd: null
+    shares: null
+    q1_change: "Added 92.4%"
+
+  - ticker: WYFI
+    name: WhiteFiber
+    sector: Digital Infrastructure
+    pct_of_portfolio: ~0.5
+    holdings_usd: null
+    shares: null
+    q1_change: "New Q4 2025"
+
+  - ticker: SHAZ
+    name: SharonAI Holdings
+    sector: AI
+    pct_of_portfolio: ~0.5
+    holdings_usd: null
+    shares: null
+    q1_change: "NEW position"
+
+  - ticker: AMD
+    name: Advanced Micro Devices
+    sector: Semiconductors
+    pct_of_portfolio: ~0.5
+    holdings_usd: null
+    shares: null
+    q1_change: "NEW position"
+
+  - ticker: INTC
+    name: Intel
+    sector: Semiconductors
+    pct_of_portfolio: ~0.5
+    holdings_usd: null
+    shares: null
+    q1_change: "Added 20M%+ (massive add)"
+
+  - ticker: MU
+    name: Micron Technology
+    sector: Memory / Semiconductors
+    pct_of_portfolio: ~0.5
+    holdings_usd: null
+    shares: null
+    q1_change: "NEW position"
+
+  - ticker: BW
+    name: Babcock & Wilcox
+    sector: Energy / Power Generation
+    pct_of_portfolio: ~0.3
+    holdings_usd: null
+    shares: null
+    q1_change: "New Q4 2025"
+
+  - ticker: PSIX
+    name: Power Solutions International
+    sector: Energy / Power
+    pct_of_portfolio: ~0.3
+    holdings_usd: null
+    shares: null
+    q1_change: "New Q4 2025"
+
+  - ticker: HIVE
+    name: HIVE Digital Technologies
+    sector: Data Center / Mining
+    pct_of_portfolio: ~0.3
+    holdings_usd: null
+    shares: null
+    q1_change: null
+
+# ─────────────────────────────────────────────────────────────────────
+# PUT HEDGES (bearish bets / portfolio protection)
+# ─────────────────────────────────────────────────────────────────────
+put_hedges:
+  - ticker: SMH
+    name: VanEck Semiconductor ETF
+    pct_of_portfolio: 14.94
+    note: "Hedging broad semi exposure"
+
+  - ticker: NVDA
+    name: NVIDIA
+    pct_of_portfolio: 11.47
+    note: "Bearish on NVDA specifically"
+
+  - ticker: ORCL
+    name: Oracle
+    pct_of_portfolio: 7.84
+    note: "Cloud competitor hedge"
+
+  - ticker: AVGO
+    name: Broadcom
+    pct_of_portfolio: 7.36
+    note: "Semi hedge"
+
+  - ticker: AMD
+    name: Advanced Micro Devices
+    pct_of_portfolio: 7.09
+    note: "Has both long stock AND puts — hedged position"
+
+# ─────────────────────────────────────────────────────────────────────
+# QUICK TICKER LIST (for batch scans)
+# ─────────────────────────────────────────────────────────────────────
+all_tickers:
+  longs: [BE, SNDK, CRWV, IREN, CORZ, APLD, RIOT, CLSK, SEI, TE, BITF, BTDR, WYFI, SHAZ, AMD, INTC, MU, BW, PSIX, HIVE]
+  put_hedges: [SMH, NVDA, ORCL, AVGO, AMD]
+
+# ─────────────────────────────────────────────────────────────────────
+# NOTES
+# ─────────────────────────────────────────────────────────────────────
+notes:
+  - "13F filings are 45 days delayed — current positions may differ"
+  - "Fund grew from $5.5B to ~$9.3B AUM in Q1 2026"
+  - "63.5% turnover rate — very active trading"
+  - "Top 10 holdings = 72.7% of portfolio — highly concentrated"
+  - "Average holding period for top 20: 1 quarter — short-term"
+  - "Thesis: long AI power/infra, short big-cap semis that are 'priced in'"
+  - "AMD appears in BOTH longs and put hedges — hedged position"
+  - "Next 13F due ~Aug 14, 2026 (Q2 positions as of June 30)"
