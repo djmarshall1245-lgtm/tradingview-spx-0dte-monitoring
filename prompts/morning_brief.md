@@ -127,7 +127,12 @@ stale data as if it were today's flow.
 ⑥ SUMMARY:
    - Macro regime + score (one line)
    - Positions that need eyes today (target/stop near, IV change, news flag)
-   - Watchlist names with a setup forming (flow + news aligned)
+   - Watchlist names with a setup forming (flow + news aligned).
+     For each: ALSO check watchlists/leopold_holdings.yaml — if the name
+     appears in that file (or its sector matches a top Leopold theme like
+     AI power / data centers / chips), note "✓ Leopold position" or
+     "✓ Leopold theme". This is a SMART-MONEY CONFIRMS flag — 45-day
+     lagged 13F context, NOT a trade trigger. Trade desk gates still apply.
    - End with: "No trade calls — that's the trade desk's job, with your GO."
 
 ⑦ DO NOT TRADE UNTIL YOU VERIFY (MANDATORY — never skip):
