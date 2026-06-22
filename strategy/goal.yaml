@@ -3,7 +3,14 @@
 # Pattern borrowed from YouTuber #1 (Hermes); numbers are yours.
 
 owner: djmarshall1245@gmail.com
-go_live: 2026-06-22
+go_live: TBD   # pending funding — see funding_source below
+funding_source:
+  note: "Capital sourced from LSTA (Lisata Therapeutics) tender proceeds"
+  tender: "Kuva Labs / Kuva Acquisition Corp — $4.00/share cash + 1 CVR"
+  tender_expires: 2026-07-10   # Friday; may be extended if threshold unmet
+  cash_eta: "~2026-07-13 to 07-15 (1-3 business days after expiration), then ACH to RH"
+  caveat: "Immediate capital = $4.00/share only; CVR (up to $3) is contingent, pays later if ever"
+  go_live_rule: "Account is live ONLY when cash shows as available buying power in ****3232"
 account:
   broker: robinhood
   subaccount: "****3232"
