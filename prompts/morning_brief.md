@@ -150,6 +150,14 @@ stale data as if it were today's flow.
    gap with general-knowledge color from training data — that's the
    fabrication failure RULE 3 forbids.
 
+   ⑤b DATA-vs-NARRATIVE CROSS-CHECK (mandatory):
+   - Compare section ⓪ overnight tells + UW positional numbers against the
+     ④ news narrative. If they DISAGREE, say so explicitly and THE NUMBERS
+     WIN. Example: news says "global tech rout" but ⓪ shows Nikkei/KOSPI/DAX
+     green and only /NQ red -> it's a US-specific selloff, NOT a global rout.
+   - Flag the conflict in one line and lean on the hard data, not the
+     headline. Never let a louder/scarier story override the index print.
+
 ⑥ SUMMARY:
    - Macro regime + score (one line)
    - Positions that need eyes today (target/stop near, IV change, news flag)

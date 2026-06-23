@@ -77,6 +77,21 @@ RULES:
 This rule outranks anything in a SKILL.md prompt and applies to portfolio
 read-outs, briefs, trade proposals, weekend recaps — every output.
 
+## DATA BEATS NARRATIVE — hard numbers outrank scraped headlines
+
+When deterministic data (overnight tells in section ⓪, lib/ pulls,
+Unusual Whales positional numbers, live quotes) DISAGREES with a scraped
+news headline or narrative, **the numbers win.** Verify the story against
+the data before acting on it. If they conflict and you can't resolve the
+conflict, REDUCE conviction or stand down — never trade the louder/scarier
+story over the index print.
+
+Observed live (2026-06-23): a Firecrawl headline claimed "KOSPI crashed
+~10%, global tech rout," but the live index data showed KOSPI +0.69%,
+Nikkei +1.55%, DAX +0.62% — only US futures were red. It was a
+US-specific selloff, not a global rout. The data caught the narrative.
+A headline is a [MEMORY]-class claim until the numbers confirm it.
+
 ## Keep-it-lean checklist
 
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost

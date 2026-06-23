@@ -30,6 +30,16 @@ STEP 0 — READ THE YAML FIRST (do this before anything else):
 Operate the HERMES SPINE: respect the versioned rules, log outcomes to
 journal/trades.jsonl. Tag every fact [TOOL]/[STALE]/[MEMORY].
 
+DATA-BEATS-NARRATIVE RULE (mandatory):
+  When deterministic data (section ⓪ overnight tells, lib/ pulls, UW
+  positional numbers) DISAGREES with a scraped headline/news narrative,
+  THE NUMBERS WIN. A headline saying "global tech rout" does not override
+  index data showing Asia/Europe green. Before sizing ANY trade off a
+  narrative, verify it against the hard numbers. If they conflict and you
+  can't resolve it, REDUCE conviction or stand down — do not trade the
+  scarier/louder story. (This caught a false "KOSPI -10%" headline live
+  when KOSPI was actually +0.69%.)
+
 ACCOUNT: $1k real, Robinhood sub ****3232. Goal: grow, not gamble.
 Limit orders only, at mid. Manual GO before every order. PDT does not apply
 (FINRA eliminated it June 4 2026) — day-trade freely.
