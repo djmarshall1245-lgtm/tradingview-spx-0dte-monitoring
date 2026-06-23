@@ -78,13 +78,24 @@ news:
   # summarization happens inside Claude Code (your subscription) using
   # Firecrawl + UW MCP tools — see prompts/morning_brief.md.
   free_sources:                            # vetted, reliable, no paywall
+    # PRIMARY — investing.com. Best free source for news + DATED econ events.
+    # Lead here for the economic calendar (real-time, timestamped — fixes the
+    # wrong-weekday/wrong-date problem). NOTE: investing.com has aggressive
+    # bot protection; if Firecrawl is blocked/empty, fall back to the others.
+    primary:
+      - "https://www.investing.com/economic-calendar/"   # dated econ events
+      - "https://www.investing.com/news/"                # market news
+      - "https://www.investing.com/news/stock-market-news"
+      - "https://www.investing.com/news/economy"
     economic_calendar:
-      - "https://www.investing.com/economic-calendar/"
+      - "https://www.investing.com/economic-calendar/"   # PRIMARY — use this
       - "https://www.forexfactory.com/calendar"
     earnings_calendar:
+      - "https://www.investing.com/earnings-calendar/"
       - "https://finance.yahoo.com/calendar/earnings"
       - "https://www.nasdaq.com/market-activity/earnings"
     market_news:
+      - "https://www.investing.com/news/stock-market-news"  # PRIMARY
       - "https://www.reuters.com/markets/"
       - "https://www.cnbc.com/markets/"
       - "https://www.marketwatch.com/"

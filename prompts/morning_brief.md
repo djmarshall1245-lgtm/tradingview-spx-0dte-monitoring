@@ -94,16 +94,30 @@ stale data as if it were today's flow.
 ③ CONDITION ALERTS — already in run.py --brief. Facts, never instructions.
    Phrase like "NOK calls hit your target level."
 
-④ PER-NAME NEWS — your job. For each name in my watchlist + positions:
+④ PER-NAME NEWS + ECONOMIC CALENDAR — your job.
+
+   ④a ECONOMIC CALENDAR (do this FIRST — it sets the day's event risk):
+   - Pull https://www.investing.com/economic-calendar/ via FIRECRAWL.
+     This is the PRIMARY source — it gives DATED, TIME-STAMPED events, which
+     fixes the recurring wrong-weekday/wrong-date problem. Do NOT state econ
+     dates from memory; read them off the calendar.
+   - List today's US events: name, time ET, prior/consensus, impact level.
+   - Flag any HIGH-impact event (PCE, CPI, NFP, FOMC, GDP). If one lands
+     today, that's an EVENT-DRIVEN day per strategy.yaml → note it; the
+     trade desk gate will stand down on unfired events.
+   - If investing.com is blocked/empty (it has bot protection), fall back to
+     forexfactory.com/calendar, then tag the dates [VERIFY].
+
+   ④b PER-NAME NEWS — for each watchlist + position name:
    - Read the raw headlines from run.py --brief output.
-   - Use FIRECRAWL MCP to pull the full text of the most material 1-2 stories.
-     Prefer the FREE SOURCES in config.yaml → news.free_sources
-     (Reuters, AP, CNBC, MarketWatch, Yahoo Finance, FRED, SEC EDGAR,
-     Cboe, MarketChameleon, CME FedWatch, investing.com calendar).
-     Cite the URL each time.
+   - Use FIRECRAWL to pull the full text of the most material 1-2 stories.
+     LEAD with investing.com (news/stock-market-news), then Reuters, AP,
+     CNBC, MarketWatch, Yahoo, FRED, SEC EDGAR (see config.yaml
+     free_sources). Cite the URL each time.
    - Return: 2-sentence summary, sentiment (positive/neutral/negative),
      key drivers, and a flag if anything materially hits an open position.
-   - NEVER say buy or sell. Summarize only.
+   - NEVER say buy or sell. Summarize only. If Firecrawl returns nothing
+     material for a name, write "[NO DATA]" — do not pad from memory.
 
 ⑤ FLOW CONTEXT — your job, via UNUSUAL WHALES MCP.
 
