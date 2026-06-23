@@ -56,20 +56,23 @@ class Tell:
 def _pct_change(symbol):
     import yfinance as yf
     t = yf.Ticker(symbol)
-    hist = t.history(period="2d")
-    if hist is None or len(hist) < 2:
-        # fall back to fast_info if intraday history is thin
-        fi = getattr(t, "fast_info", {}) or {}
-        last = fi.get("last_price")
-        prev = fi.get("previous_close")
-        if last and prev:
-            return float(last), (float(last) / float(prev) - 1) * 100
-        return (float(last) if last else None), None
-    closes = hist["Close"].dropna()
-    if len(closes) < 2:
-        return float(closes.iloc[-1]) if len(closes) else None, None
-    last, prev = float(closes.iloc[-1]), float(closes.iloc[-2])
-    return last, (last / prev - 1) * 100 if prev else None
+    # 5d window (not 2d): foreign indices (Nikkei/KOSPI/DAX) and rate symbols
+    # (^TNX) can have holiday/timezone gaps that leave a 2d window with <2 rows.
+    hist = t.history(period="5d")
+    if hist is not None and not hist.empty:
+        closes = hist["Close"].dropna()
+        if len(closes) >= 2:
+            last, prev = float(closes.iloc[-1]), float(closes.iloc[-2])
+            return last, (last / prev - 1) * 100 if prev else None
+        if len(closes) == 1:
+            return float(closes.iloc[-1]), None
+    # fall back to fast_info if history is empty/thin
+    fi = getattr(t, "fast_info", {}) or {}
+    last = fi.get("last_price")
+    prev = fi.get("previous_close")
+    if last and prev:
+        return float(last), (float(last) / float(prev) - 1) * 100
+    return (float(last) if last else None), None
 
 
 def pull(tells: dict | None = None) -> list[Tell]:
