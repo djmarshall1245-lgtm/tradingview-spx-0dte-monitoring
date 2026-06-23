@@ -33,6 +33,23 @@ sector_map:
   TSLA: consumer_disc
   XLF: financials
 
+# ⓪ Overnight tells — pre-open global tape (lib/overnight.py). Prune/expand
+# freely; label -> yfinance symbol. Pulled deterministically each brief.
+overnight_tells:
+  "/ES (S&P fut)":    "ES=F"
+  "/NQ (Nasdaq fut)": "NQ=F"
+  "VIX":              "^VIX"
+  "10Y yield":        "^TNX"
+  "Dollar (DXY)":     "DX-Y.NYB"
+  "USD/JPY":          "JPY=X"
+  "Crude (WTI)":      "CL=F"
+  "Copper":           "HG=F"
+  "Gold":             "GC=F"
+  "Bitcoin":          "BTC-USD"
+  "Nikkei":           "^N225"
+  "KOSPI":            "^KS11"
+  "DAX":              "^GDAXI"
+
 macro_gate:                                # [YT#2] weights sum to 1.0
   weights:
     vix_level: 0.30

@@ -60,6 +60,14 @@ def cmd_brief(asof):
     asof = asof or date.today().isoformat()
     print(f"=== MORNING BRIEF — {asof} (OBSERVE only, no trades) ===\n")
 
+    # 0) overnight tells — pre-open global tape
+    try:
+        from lib import overnight
+        print(overnight.report(cfg.get("overnight_tells")))
+        print()
+    except Exception as e:
+        print(f"⓪ OVERNIGHT TELLS unavailable: {e}\n")
+
     # 1) macro
     try:
         from lib import macro_gate

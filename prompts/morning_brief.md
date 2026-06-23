@@ -71,6 +71,18 @@ stale data as if it were today's flow.
 
 ═══════════════════════════════════════════════════════════════════════
 
+⓪ OVERNIGHT TELLS — already in run.py --brief output. The pre-open global
+   tape: US futures (/ES /NQ), VIX, 10Y, DXY, USD/JPY, oil, copper, gold,
+   bitcoin, Nikkei, KOSPI, DAX — each with overnight % and a risk-on/off
+   tally. Paste it here and add ONE line of interpretation:
+   - Are Asia/Europe + futures pointing the same way (clean lean) or
+     fighting each other (chop risk)?
+   - Any single tell screaming (KOSPI -10% = chip rout; USD/JPY gapping =
+     risk-off; VIX spiking)? Flag it.
+   - Is /ES HOLDING or FADING the overnight move? Gaps fade — don't assume
+     the overnight direction sticks into the open.
+   NOT a trade trigger — context that frames the macro regime.
+
 ① MACRO SCORE — already in run.py --brief output. Just paste it here.
    0-100 deterministic score from VIX + term structure + breadth + credit.
    NOT a trade trigger; it tags the regime the book sits in.
