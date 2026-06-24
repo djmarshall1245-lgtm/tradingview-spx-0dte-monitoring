@@ -1,41 +1,29 @@
 """Tastytrade market-data client — DATA ONLY, no execution. [User-added]
 
-Tastytrade's API is built for options. The headline value here is the
-/market-metrics endpoint: it returns IV RANK, IV percentile, implied vol,
-beta, and liquidity per symbol INSTANTLY — no 20-day snapshot ramp needed.
-That's a professional-grade IV-rank signal for the watchlist, today.
+Tastytrade's API is built for options. The headline value here is
+get_market_metrics: it returns IV RANK, IV percentile, implied vol, beta,
+and liquidity per symbol INSTANTLY — no 20-day snapshot ramp needed. That's
+a professional-grade IV-rank signal for the watchlist, today.
 
-Auth: OAuth2 refresh flow. Reads three secrets from the environment
-(never hardcoded, never committed — see .env.example):
-    TASTYTRADE_CLIENT_ID
-    TASTYTRADE_CLIENT_SECRET
-    TASTYTRADE_REFRESH_TOKEN
-Put them in a local .env (gitignored). This module loads them at call time
-and fails LOUD with a clear message if any is missing.
+Uses the official `tastytrade` SDK (tastyware), which handles OAuth, the
+15-min access-token auto-refresh, and SSL correctly. The SDK's OAuth
+Session is `Session(provider_secret, refresh_token)` — OAuth-only, and it
+does NOT take a client_id (the hand-rolled flow's client_id is why the raw
+token call returned HTTP 400).
+
+Secrets come from a gitignored .env (see .env.example):
+    TASTYTRADE_CLIENT_SECRET    -> SDK provider_secret   (required)
+    TASTYTRADE_REFRESH_TOKEN    -> SDK refresh_token      (required)
+    TASTYTRADE_CLIENT_ID        -> optional / unused by the SDK OAuth flow
 
 Execution is intentionally NOT implemented. This pulls data; orders stay
 on Robinhood ****3232.
 """
 from __future__ import annotations
 
-import json
+import asyncio
 import os
-import ssl
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
-
-BASE = "https://api.tastytrade.com"
-_TOKEN_CACHE = {"access": None}   # cache access token for the process lifetime
-
-# Use a current CA bundle (certifi) so SSL verification works on macOS Python
-# builds that lack a usable system trust store. We NEVER disable verification —
-# this connection carries broker credentials.
-try:
-    import certifi
-    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
-except Exception:
-    _SSL_CTX = ssl.create_default_context()
 
 
 def _load_env_file():
@@ -52,61 +40,27 @@ def _load_env_file():
 
 
 def _creds():
+    """Return (provider_secret, refresh_token). client_id is optional/unused."""
     _load_env_file()
-    cid = os.environ.get("TASTYTRADE_CLIENT_ID")
     secret = os.environ.get("TASTYTRADE_CLIENT_SECRET")
     refresh = os.environ.get("TASTYTRADE_REFRESH_TOKEN")
-    missing = [n for n, v in [("TASTYTRADE_CLIENT_ID", cid),
-                              ("TASTYTRADE_CLIENT_SECRET", secret),
+    missing = [n for n, v in [("TASTYTRADE_CLIENT_SECRET", secret),
                               ("TASTYTRADE_REFRESH_TOKEN", refresh)] if not v]
     if missing:
         raise RuntimeError(
             "Tastytrade creds missing: " + ", ".join(missing) +
             ". Put them in a local .env (gitignored) — see .env.example.")
-    return cid, secret, refresh
+    return secret, refresh
 
 
-def _access_token(force=False):
-    if _TOKEN_CACHE["access"] and not force:
-        return _TOKEN_CACHE["access"]
-    cid, secret, refresh = _creds()
-    body = urllib.parse.urlencode({
-        "grant_type": "refresh_token",
-        "refresh_token": refresh,
-        "client_id": cid,
-        "client_secret": secret,
-    }).encode()
-    req = urllib.request.Request(f"{BASE}/oauth/token", data=body, method="POST")
-    req.add_header("Content-Type", "application/x-www-form-urlencoded")
-    req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=20, context=_SSL_CTX) as resp:
-        tok = json.loads(resp.read()).get("access_token")
-    if not tok:
-        raise RuntimeError("Tastytrade OAuth returned no access_token — check creds.")
-    _TOKEN_CACHE["access"] = tok
-    return tok
-
-
-def _get(path, params):
-    token = _access_token()
-    q = urllib.parse.urlencode(params)
-    req = urllib.request.Request(f"{BASE}{path}?{q}", method="GET")
-    req.add_header("Authorization", f"Bearer {token}")
-    req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=20, context=_SSL_CTX) as resp:
-        return json.loads(resp.read())
-
-
-def _f(d, *keys):
-    """First non-empty field among keys, as float; None if absent."""
-    for k in keys:
-        v = d.get(k)
-        if v not in (None, ""):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-    return None
+def _f(v):
+    """Coerce a value (Decimal / str / None) to float, or None."""
+    if v in (None, ""):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass
@@ -120,25 +74,50 @@ class Metrics:
     label: str = ""           # rich / cheap / mid
 
 
+async def _afetch(symbols):
+    """Open an OAuth session, pull metrics, always close the httpx client."""
+    from tastytrade import Session
+    from tastytrade.metrics import get_market_metrics
+
+    secret, refresh = _creds()
+    session = Session(secret, refresh)          # provider_secret, refresh_token
+    try:
+        return await get_market_metrics(session, list(symbols))
+    finally:
+        close = getattr(session, "close", None)
+        if close:
+            res = close()
+            if asyncio.iscoroutine(res):
+                await res
+
+
 def market_metrics(symbols, rich_above=70, cheap_below=30) -> list[Metrics]:
-    """IV rank + metrics for a list of symbols via /market-metrics."""
-    data = _get("/market-metrics", {"symbols": ",".join(symbols)})
-    items = (data.get("data") or {}).get("items") or []
+    """IV rank + metrics for a list of symbols via the official SDK."""
+    try:
+        raw = asyncio.run(_afetch(symbols))
+    except ModuleNotFoundError:
+        raise RuntimeError("tastytrade SDK not installed in this env — "
+                           "run: pip install -r requirements.txt")
     out = []
-    for it in items:
-        ivr = _f(it, "implied-volatility-index-rank", "tos-implied-volatility-index-rank")
-        ivp = _f(it, "implied-volatility-percentile")
-        # Tastytrade returns rank/percentile as 0-1 decimals; scale to 0-100.
+    for it in raw:
+        ivr = _f(getattr(it, "implied_volatility_index_rank", None))
+        if ivr is None:
+            ivr = _f(getattr(it, "tos_implied_volatility_index_rank", None))
+        ivp = _f(getattr(it, "implied_volatility_percentile", None))
+        # SDK returns rank/percentile as 0-1 decimals; scale to 0-100.
         ivr = round(ivr * 100, 1) if ivr is not None and ivr <= 1.5 else ivr
         ivp = round(ivp * 100, 1) if ivp is not None and ivp <= 1.5 else ivp
         label = ("rich" if ivr is not None and ivr > rich_above else
                  "cheap" if ivr is not None and ivr < cheap_below else "mid")
+        liq = _f(getattr(it, "liquidity_rating", None))
+        if liq is None:
+            liq = _f(getattr(it, "liquidity_value", None))
         out.append(Metrics(
-            symbol=it.get("symbol", "?"),
-            iv=_f(it, "implied-volatility-index"),
+            symbol=getattr(it, "symbol", "?"),
+            iv=_f(getattr(it, "implied_volatility_index", None)),
             iv_rank=ivr, iv_pct=ivp,
-            beta=_f(it, "beta"),
-            liquidity=_f(it, "liquidity-rating", "liquidity-rank"),
+            beta=_f(getattr(it, "beta", None)),
+            liquidity=liq,
             label=label,
         ))
     return out
@@ -151,7 +130,7 @@ def report(symbols, rich_above=70, cheap_below=30) -> str:
         return f"IV RANK (Tastytrade) unavailable: {str(e)[:120]}"
     if not rows:
         return "IV RANK (Tastytrade): no data returned for watchlist."
-    lines = ["IV RANK  [TOOL] Tastytrade /market-metrics (instant, no ramp)"]
+    lines = ["IV RANK  [TOOL] Tastytrade get_market_metrics (instant, no ramp)"]
     for m in sorted(rows, key=lambda r: (r.iv_rank is None, r.iv_rank or 0)):
         ivr = f"{m.iv_rank:>5.1f}" if m.iv_rank is not None else "  n/a"
         iv = f"{m.iv*100:>5.1f}%" if m.iv is not None else "   n/a"
