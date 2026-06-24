@@ -21,9 +21,19 @@ funding_source:
       usd: ~206
       note: "Top-up to $1000 pending — user will transfer remainder when cash clears."
   partial_funding_rule: |
-    While the agentic sub is BELOW $1000, the user has elected NOT to trade
-    rather than loosen any rule. strategy.yaml premium band, -40% stop, and
-    $700 floor stay UNTOUCHED. Account goes live only once topped to $1000+.
+    TEMPORARY — auto-removes when ****3232 is topped to $1000.
+    While the agentic sub is BELOW $1000, ONE TRADE PER DAY MAX in this
+    account (overrides strategy.yaml.risk_controls.daily_loss_cap_trades=2
+    for as long as this rule exists). strategy.yaml itself is UNCHANGED:
+    premium band $1.00-1.50, -40% stop, +50-100% TP, $700 floor — all
+    stay intact.
+    Why: at $794 a single trade is safe (-$50 = 6.3%), but a 2-loss day
+    (-$100 = 12.6%) breaches both the 10% daily DD cap AND the $700 floor
+    (account would land at $694). Limiting to one trade per day removes
+    the 2-loss-day risk surface without loosening any hard rail.
+    Trade desk MUST: before proposing, count trades in journal/trades.jsonl
+    with ts_entry on today's date. If >= 1, stand down with reason
+    "partial_funding_rule: one trade per day until ****3232 >= $1000."
 account:
   broker: robinhood
   subaccount: "****3232"
