@@ -58,13 +58,14 @@ def cmd_brief(asof):
     positions = _load_yaml("positions.yaml").get("positions", [])
     watch = cfg.get("watchlist", [])
     asof = asof or date.today().isoformat()
-    # Live wall-clock stamp — anchors date/time/weekday from the machine clock,
-    # never from memory. Entry window is 9:45-2:30 ET; check this against it.
+    # Live wall-clock stamp in NEW YORK TIME — always ET regardless of where
+    # this runs. Entry window 9:45-2:30 ET; verify the NOW line against it.
     from datetime import datetime
-    now = datetime.now().astimezone()
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("America/New_York"))
     print(f"=== MORNING BRIEF — {asof} (OBSERVE only, no trades) ===")
     print(f"    NOW: {now:%A %Y-%m-%d  %H:%M:%S %Z}  "
-          f"(entry window 9:45-2:30 ET; verify your local tz)\n")
+          f"(entry window 9:45-2:30 ET)\n")
 
     # 0) overnight tells — pre-open global tape
     try:

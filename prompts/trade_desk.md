@@ -27,8 +27,10 @@ STEP 0 — READ THE YAML FIRST (do this before anything else):
   WINS. Do not invent sub-rules ("ASK-side", "ascending fills", "3+ alerts")
   that aren't in strategy.yaml.
 
-STEP 0b — ANCHOR DATE & TIME (run it, never guess):
-  Run `date "+%A %Y-%m-%d %H:%M:%S %Z"` in the terminal. State it back:
+STEP 0b — ANCHOR DATE & TIME in NEW YORK TIME (run it, never guess):
+  Run `TZ=America/New_York date "+%A %Y-%m-%d %H:%M:%S %Z"` in the terminal —
+  the TZ= override forces NY time so the output is always ET, regardless of
+  the machine's local clock. State it back:
   "Now: <weekday> <YYYY-MM-DD> <HH:MM> ET." Then gate on it:
   - ENTRY WINDOW: entries only 9:45-2:30 ET, skip lunch 12:00-1:00.
     Outside that window -> STAND DOWN, no proposal. Do NOT trust your
