@@ -11,6 +11,19 @@ funding_source:
   cash_eta: "~2026-07-13 to 07-15 (1-3 business days after expiration), then ACH to RH"
   caveat: "Immediate capital = $4.00/share only; CVR (up to $3) is contingent, pays later if ever"
   go_live_rule: "Account is live ONLY when cash shows as available buying power in ****3232"
+  # Funding is landing in tranches. The strategy was sized at $1000; the
+  # premium band / -40% stop / $700 floor only line up cleanly at that level.
+  tranches:
+    - date: 2026-06-24
+      usd: 794
+      note: "First tranche landed in ****3232 (initial transfer from main)."
+    - date: TBD
+      usd: ~206
+      note: "Top-up to $1000 pending — user will transfer remainder when cash clears."
+  partial_funding_rule: |
+    While the agentic sub is BELOW $1000, the user has elected NOT to trade
+    rather than loosen any rule. strategy.yaml premium band, -40% stop, and
+    $700 floor stay UNTOUCHED. Account goes live only once topped to $1000+.
 account:
   broker: robinhood
   subaccount: "****3232"
