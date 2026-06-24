@@ -76,6 +76,17 @@ def cmd_brief(asof):
     except Exception as e:
         print(f"① MACRO unavailable: {e}")
 
+    # 1b) IV rank via Tastytrade /market-metrics (optional — skips if no creds)
+    try:
+        from lib import tastytrade
+        an = cfg.get("analytics", {})
+        print()
+        print(tastytrade.report(watch,
+                                an.get("iv_rich_above", 70),
+                                an.get("iv_cheap_below", 30)))
+    except Exception as e:
+        print(f"\nIV RANK (Tastytrade) skipped: {str(e)[:100]}")
+
     # 2) book health + alerts
     try:
         from lib import snapshot, alerts

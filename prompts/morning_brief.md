@@ -91,6 +91,14 @@ stale data as if it were today's flow.
    delta, theta/day, IV rank (from my own snapshots), progress to MY target /
    MY stop. Aggregate Greeks and concentration flags.
 
+②b IV RANK SCREEN — already in run.py --brief (Tastytrade /market-metrics,
+   if creds configured). Per watchlist name: IV rank (0-100), IV, beta,
+   rich/cheap/mid. Use it to avoid OVERPAYING for premium — a "cheap" IV
+   name is a better long-premium buy than a "rich" one. This is CONTEXT,
+   not a gate; the A+ flow/gauge/chart gate still decides the trade. If the
+   section says "skipped"/"unavailable", Tastytrade creds aren't set — note
+   it and proceed without (don't fabricate IV ranks).
+
 ③ CONDITION ALERTS — already in run.py --brief. Facts, never instructions.
    Phrase like "NOK calls hit your target level."
 
