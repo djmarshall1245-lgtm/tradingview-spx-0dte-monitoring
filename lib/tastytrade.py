@@ -20,12 +20,22 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
 BASE = "https://api.tastytrade.com"
 _TOKEN_CACHE = {"access": None}   # cache access token for the process lifetime
+
+# Use a current CA bundle (certifi) so SSL verification works on macOS Python
+# builds that lack a usable system trust store. We NEVER disable verification —
+# this connection carries broker credentials.
+try:
+    import certifi
+    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    _SSL_CTX = ssl.create_default_context()
 
 
 def _load_env_file():
@@ -69,7 +79,7 @@ def _access_token(force=False):
     req = urllib.request.Request(f"{BASE}/oauth/token", data=body, method="POST")
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
     req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with urllib.request.urlopen(req, timeout=20, context=_SSL_CTX) as resp:
         tok = json.loads(resp.read()).get("access_token")
     if not tok:
         raise RuntimeError("Tastytrade OAuth returned no access_token — check creds.")
@@ -83,7 +93,7 @@ def _get(path, params):
     req = urllib.request.Request(f"{BASE}{path}?{q}", method="GET")
     req.add_header("Authorization", f"Bearer {token}")
     req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with urllib.request.urlopen(req, timeout=20, context=_SSL_CTX) as resp:
         return json.loads(resp.read())
 
 
