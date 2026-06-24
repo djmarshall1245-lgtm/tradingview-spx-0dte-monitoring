@@ -32,7 +32,17 @@ from dataclasses import dataclass
 
 
 def _load_env_file():
-    """Best-effort: load KEY=VALUE lines from a local .env if present."""
+    """Load KEY=VALUE lines from a local .env if present.
+
+    For OUR TASTYTRADE_* keys, .env values UNCONDITIONALLY override any
+    pre-existing shell env vars — because .env is the canonical source of
+    truth for this app. (Earlier loader used setdefault, which silently
+    let a stale shell var shadow a freshly-edited .env, hiding a revoked
+    refresh token behind the same error forever.)
+
+    For non-TASTYTRADE_* keys, keep the conservative setdefault behavior so
+    we don't stomp on unrelated shell env the user set deliberately.
+    """
     path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
     if not os.path.exists(path):
         return
@@ -41,7 +51,17 @@ def _load_env_file():
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        k = k.strip()
+        v = v.strip().strip('"').strip("'")
+        if k.startswith("TASTYTRADE_"):
+            prior = os.environ.get(k)
+            if prior is not None and prior != v:
+                # Make the shadow visible so this footgun can't recur silently.
+                print(f"[.env] {k} was shadowed by a stale shell value; "
+                      f".env value wins now.")
+            os.environ[k] = v
+        else:
+            os.environ.setdefault(k, v)
 
 
 def _creds():
