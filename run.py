@@ -77,13 +77,14 @@ def cmd_brief(asof):
         print(f"① MACRO unavailable: {e}")
 
     # 1b) IV rank via Tastytrade /market-metrics (optional — skips if no creds)
+    # NB: lib module is `tasty` not `tastytrade` to avoid shadowing the SDK.
     try:
-        from lib import tastytrade
+        from lib import tasty
         an = cfg.get("analytics", {})
         print()
-        print(tastytrade.report(watch,
-                                an.get("iv_rich_above", 70),
-                                an.get("iv_cheap_below", 30)))
+        print(tasty.report(watch,
+                           an.get("iv_rich_above", 70),
+                           an.get("iv_cheap_below", 30)))
     except Exception as e:
         print(f"\nIV RANK (Tastytrade) skipped: {str(e)[:100]}")
 

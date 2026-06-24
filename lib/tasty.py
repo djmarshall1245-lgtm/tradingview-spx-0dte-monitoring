@@ -1,5 +1,10 @@
 """Tastytrade market-data client — DATA ONLY, no execution. [User-added]
 
+NOTE — module is named `tasty.py` (not `tastytrade.py`) on purpose so it
+does NOT shadow the installed `tastytrade` SDK. With the file previously
+named `lib/tastytrade.py`, `from tastytrade import Session` resolved to
+our own file instead of the SDK and failed with a misleading ImportError.
+
 Tastytrade's API is built for options. The headline value here is
 get_market_metrics: it returns IV RANK, IV percentile, implied vol, beta,
 and liquidity per symbol INSTANTLY — no 20-day snapshot ramp needed. That's
