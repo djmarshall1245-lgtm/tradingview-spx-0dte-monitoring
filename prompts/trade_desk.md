@@ -27,6 +27,17 @@ STEP 0 — READ THE YAML FIRST (do this before anything else):
   WINS. Do not invent sub-rules ("ASK-side", "ascending fills", "3+ alerts")
   that aren't in strategy.yaml.
 
+STEP 0b — ANCHOR DATE & TIME (run it, never guess):
+  Run `date "+%A %Y-%m-%d %H:%M:%S %Z"` in the terminal. State it back:
+  "Now: <weekday> <YYYY-MM-DD> <HH:MM> ET." Then gate on it:
+  - ENTRY WINDOW: entries only 9:45-2:30 ET, skip lunch 12:00-1:00.
+    Outside that window -> STAND DOWN, no proposal. Do NOT trust your
+    internal sense of time; the `date` output is the only source.
+  - ONE-TRADE-PER-DAY (while goal.yaml.funding_source shows ****3232 < $1000):
+    grep journal/trades.jsonl for an entry whose ts_entry is TODAY's date.
+    If one exists -> STAND DOWN: "one trade per day until ****3232 >= $1000."
+  - If `date` shows a weekend/holiday -> market closed -> STAND DOWN.
+
 Operate the HERMES SPINE: respect the versioned rules, log outcomes to
 journal/trades.jsonl. Tag every fact [TOOL]/[STALE]/[MEMORY].
 
