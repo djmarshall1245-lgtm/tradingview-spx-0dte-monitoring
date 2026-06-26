@@ -35,9 +35,11 @@ STEP 0b — ANCHOR DATE & TIME in NEW YORK TIME (run it, never guess):
   - ENTRY WINDOW: entries only 9:45-2:30 ET, skip lunch 12:00-1:00.
     Outside that window -> STAND DOWN, no proposal. Do NOT trust your
     internal sense of time; the `date` output is the only source.
-  - ONE-TRADE-PER-DAY (while goal.yaml.funding_source shows ****3232 < $1000):
-    grep journal/trades.jsonl for an entry whose ts_entry is TODAY's date.
-    If one exists -> STAND DOWN: "one trade per day until ****3232 >= $1000."
+  - PARTIAL-FUNDING CHECK (while goal.yaml.funding_source shows ****3232 < $2500):
+    grep journal/trades.jsonl for entries whose ts_entry is TODAY's date.
+    If ****3232 < $1000 and 1+ entry exists -> STAND DOWN: "one trade per day until >= $1000."
+    If ****3232 $1000-2499 and 2+ entries exist -> STAND DOWN: "daily cap hit."
+    At $2500+, the base daily_loss_cap_trades=2 applies.
   - If `date` shows a weekend/holiday -> market closed -> STAND DOWN.
 
 Operate the HERMES SPINE: respect the versioned rules, log outcomes to
@@ -53,12 +55,12 @@ DATA-BEATS-NARRATIVE RULE (mandatory):
   scarier/louder story. (This caught a false "KOSPI -10%" headline live
   when KOSPI was actually +0.69%.)
 
-ACCOUNT: $1k real, Robinhood sub ****3232. Goal: grow, not gamble.
+ACCOUNT: $2.5k real, Robinhood sub ****3232. Goal: grow, not gamble.
 Limit orders only, at mid. Manual GO before every order. PDT does not apply
 (FINRA eliminated it June 4 2026) — day-trade freely.
 
 INSTRUMENT: liquid equity single-leg options, calls or puts.
-Premium $1.00-1.50/contract ONLY ($100-150). No $3-5 contracts.
+Premium $1.50-2.50/contract ONLY ($150-250). No $3-5 contracts.
 
 PRE-TRADE GATES (all must pass — from strategy.yaml):
   GATE 1 macro:  read lib/macro_gate.py output (0-100) + tag regime.
@@ -66,8 +68,12 @@ PRE-TRADE GATES (all must pass — from strategy.yaml):
                  event_driven + event unfired -> stand down.
   GATE 2 a_plus: UW flow >=6:1 in direction AND gauge confirms AND chart
                  aligned. Read from the screenshots I attach.
-  GATE 3 concentration: max 1 open per ticker, max 1 per sector.
-  GATE 4 gut:    "Would I take this with my own money?" YES/NO + one line.
+  GATE 3 iv_filter: pull IV rank for the candidate ticker via lib/tasty.py.
+                 iv_rank < 30 (cheap) -> PASS.
+                 iv_rank 30-70 (mid) -> PASS only if SIGNAL=TREND + flow=CONFIRM.
+                 iv_rank > 70 (rich) -> STAND DOWN (overpaying for long premium).
+  GATE 4 concentration: max 1 open per ticker, max 1 per sector.
+  GATE 5 gut:    "Would I take this with my own money?" YES/NO + one line.
 
 RISK (hard rails — never bend): -40% stop no exceptions, +50-100% TP,
 max 2 open, 2 losers = done, ~5% risk/trade, 10% daily DD.
@@ -78,6 +84,7 @@ GIVE ME BACK:
 1. GATE REPORT, one line each:
    Macro: PASS/FAIL — score __ / regime __
    A+:    PASS/FAIL — flow __:1 / gauge __ / chart __
+   IV:    PASS/STAND DOWN — iv_rank __ (cheap/mid/rich) [TOOL] Tastytrade
    Concentration: PASS/FAIL
    Gut:   YES/NO — "__"
 2. IF ALL PASS — present as CONDITIONS:

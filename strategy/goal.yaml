@@ -18,26 +18,18 @@ funding_source:
       usd: 794
       note: "First tranche landed in ****3232 (initial transfer from main)."
     - date: TBD
-      usd: ~206
-      note: "Top-up to $1000 pending — user will transfer remainder when cash clears."
+      usd: ~1706
+      note: "Top-up to $2500 pending — user will transfer remainder."
   partial_funding_rule: |
-    TEMPORARY — auto-removes when ****3232 is topped to $1000.
-    While the agentic sub is BELOW $1000, ONE TRADE PER DAY MAX in this
-    account (overrides strategy.yaml.risk_controls.daily_loss_cap_trades=2
-    for as long as this rule exists). strategy.yaml itself is UNCHANGED:
-    premium band $1.00-1.50, -40% stop, +50-100% TP, $700 floor — all
-    stay intact.
-    Why: at $794 a single trade is safe (-$50 = 6.3%), but a 2-loss day
-    (-$100 = 12.6%) breaches both the 10% daily DD cap AND the $700 floor
-    (account would land at $694). Limiting to one trade per day removes
-    the 2-loss-day risk surface without loosening any hard rail.
-    Trade desk MUST: before proposing, count trades in journal/trades.jsonl
-    with ts_entry on today's date. If >= 1, stand down with reason
-    "partial_funding_rule: one trade per day until ****3232 >= $1000."
+    RESOLVED — account target raised to $2500 (v02). Once funded,
+    daily_loss_cap_trades returns to its base value of 2 (strategy.yaml).
+    While ****3232 is BELOW $2500, apply v01 partial-funding logic:
+    one trade per day if under $1000; two trades per day if $1000-2499.
+    At $2500+, this rule is fully inactive.
 account:
   broker: robinhood
   subaccount: "****3232"
-  starting_capital_usd: 1000
+  starting_capital_usd: 2500
   capital_type: real
   intent: "spin and grow the account, not gamble"
 
@@ -60,7 +52,7 @@ success:
   win_rate_floor: 0.40           # informational; not the objective
 failure:
   expectancy_usd: "< 0 for 2 consecutive weeks"
-  account_floor_usd: 700         # 30% total drawdown -> halt and review
+  account_floor_usd: 1000        # absolute floor (user set); 20% DD hard rail binds first
 
 # Hard constraints the optimizer may NEVER relax (see strategy.yaml hard_rails)
 constraints:

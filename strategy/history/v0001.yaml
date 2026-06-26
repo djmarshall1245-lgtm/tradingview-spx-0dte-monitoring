@@ -3,7 +3,7 @@
 # "learned". Versioned; every prior version snapshots to history/.
 # Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
 
-version: "02"
+version: "01"
 based_on_goal: strategy/goal.yaml
 
 instrument:
@@ -11,7 +11,7 @@ instrument:
   legs: single_leg
   side: [long_call, long_put]
   universe: liquid_names_only
-  premium_per_contract_usd: [1.50, 2.50]   # sized for $2.5k (scale_up_plan tier)
+  premium_per_contract_usd: [1.00, 1.50]   # sized for a $1k account
 
 direction:
   allow_long: true
@@ -35,18 +35,6 @@ gates:
   concentration:                             # [YT#2]
     max_per_ticker: 1
     max_per_sector: 1
-  iv_filter:                                 # [v02] don't overpay for long premium
-    source: lib/tasty.py                     # Tastytrade IV rank (0-100)
-    applies_to: candidate_ticker
-    rules:
-      - iv_rank_below: 30                    # cheap -> GREEN, ideal entry
-        action: pass
-      - iv_rank_between: [30, 70]            # mid -> CONDITIONAL
-        action: pass_if_trend_and_flow_confirm
-        note: "allowed only when SIGNAL=TREND and flow=CONFIRM"
-      - iv_rank_above: 70                    # rich -> STAND DOWN
-        action: stand_down
-        note: "overpaying for theta/vega; revisit when account supports selling"
   gut_check:                                 # [yours] replaces paper-mode
     question: "Would I take this with my own money?"
     must_be: yes
@@ -98,9 +86,8 @@ editable_by_loop:
   - gates.macro.against_risk_min_score
   - instrument.premium_per_contract_usd
   - gates.concentration.max_per_sector
-  - gates.iv_filter.rules           # IV-rank thresholds (refine with data, not loosen)
   - exits.take_profit_pct          # within reason; cannot be lowered to game win-rate
 
 scale_up_plan:
-  - "account >= 2500 -> premium band [1.50, 2.50]   # ACTIVE (v02)"
+  - "account >= 2500 -> premium band [1.50, 2.50]"
   - "account >= 5000 -> premium band [3.00, 5.00]"
