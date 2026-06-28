@@ -115,6 +115,11 @@ IF SIGNAL = TREND or SCALP with components confirmed → FREEZE SCAN, proceed to
 # STEP 2 — PRE-TRADE GATES (all 5 must pass)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+ultrathink. Gates 1–4 are the money decision — reason each one out, weigh the
+chart against the flow when they disagree, and name the strongest reason NOT to
+trade before you let it pass. (One deep-reasoning pass here covers the STEP 3
+verdict too — they flow together.)
+
 Run each gate. If ANY fails → "no A+ setup, stand down" + which gate failed.
 Never force, never suggest a bypass.
 
@@ -254,6 +259,9 @@ IF USER TYPES 'n' or 'no':
 Once a position is open, monitor continuously. Execute a closing order
 on the FIRST exit condition hit. Every close requires: review_option_order
 → user approval → place_option_order. Same manual-GO flow.
+
+think hard at each HOLD / TAKE PROFIT / CUT decision — an exit is a real-money
+call too. Weigh live mark + P&L vs the stop and the next Voodoo before proposing.
 
 EXIT A — TAKE PROFIT (+50% or +100% of premium paid):
   Track live mark vs premium_paid. When mark >= 1.5x paid (TP1) or

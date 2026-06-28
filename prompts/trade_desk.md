@@ -81,6 +81,9 @@ max 2 open, 2 losers = done, ~5% risk/trade, 10% daily DD.
 CONDITIONS NEVER ORDERS: you PROPOSE, I APPROVE, then we place.
 
 GIVE ME BACK:
+(think hard before deciding — this is real money. Reason through EACH gate, don't
+rubber-stamp; apply the DATA-BEATS-NARRATIVE rule above; if any gate is unverified
+or the chart and flow disagree, lean toward STAND DOWN.)
 1. GATE REPORT, one line each:
    Macro: PASS/FAIL — score __ / regime __
    A+:    PASS/FAIL — flow __:1 / gauge __ / chart __
