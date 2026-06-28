@@ -239,6 +239,14 @@ Sequence the main session follows:
 Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
 decision-agent). They load on-demand — they do not bloat every-session context.
 
+**Auto-think at decisions (by design, not drift):** the decision prompts embed
+reasoning triggers so Claude reasons hard at the money-moving moments WITHOUT you
+typing them — `ultrathink` at the decision-agent verdict and the spx_0dte_desk
+gates; `think hard` at the trade_desk gate report and the exit (HOLD/TP/CUT)
+decisions. The data agents (quant, flow) and the morning brief stay fast by
+design — do NOT add triggers there. One trigger per decision point is enough;
+repeating it doesn't deepen reasoning further.
+
 ## Robinhood MCP (official agentic trading)
 
 Server: `robinhood-trading` → `https://agent.robinhood.com/mcp/trading`
