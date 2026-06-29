@@ -3,6 +3,24 @@
 Trading workspace for supervising a SPX/SPY 0DTE Pine Script on TradingView
 Desktop. This file keeps Claude Code lean so it stays sharp during sessions.
 
+## FILE DELIVERY RULE — always hand back the pull command
+
+The cloud session creates + pushes files; the user uses them on their **Mac
+terminal**. A new file is useless until it's pulled down. So: ANYTIME I create
+and push a new file (or any commit the user needs locally), I **end that turn
+with the paste-safe pull command — automatically, without being asked**:
+
+    cd ~/tradingview-spx-0dte-monitoring && git pull origin <current-branch>
+
+(substitute the real branch — currently `claude/plce-XFleD`; no `#` comments, no
+slash commands — it's pasted into zsh, not the Claude app.) Then add a one-line
+verify, e.g. `ls -1 <path> && head -12 <path>`.
+
+Conflict caveat: if the pull reports a merge conflict or "local changes would be
+overwritten," STOP — have the user paste the exact error, then use
+`git stash` → pull → `git stash drop` (NEVER `git stash pop`). The user should
+never have to ask "how do I pull this."
+
 ## START-OF-SESSION RULE — read the YAML first, ALWAYS
 
 Before answering ANY trading question, proposing ANY setup, or summarizing
