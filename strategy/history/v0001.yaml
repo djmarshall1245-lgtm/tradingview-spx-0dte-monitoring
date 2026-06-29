@@ -1,0 +1,93 @@
+# strategy.yaml — the current playbook Claude reads at the start of every
+# session. When THIS file changes (via friday_loop + your GO), the system
+# "learned". Versioned; every prior version snapshots to history/.
+# Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
+
+version: "01"
+based_on_goal: strategy/goal.yaml
+
+instrument:
+  type: equity_options
+  legs: single_leg
+  side: [long_call, long_put]
+  universe: liquid_names_only
+  premium_per_contract_usd: [1.00, 1.50]   # sized for a $1k account
+
+direction:
+  allow_long: true
+  allow_short: true
+
+# ─────────────────────────────────────────────────────────────────────
+# PRE-TRADE GATES — all must pass. Deterministic where possible.
+# ─────────────────────────────────────────────────────────────────────
+gates:
+  macro:                                    # [YT#2] 0-100 score, lib/macro_gate.py
+    required: true
+    with_risk_min_score: 50                 # if trading WITH broad risk
+    against_risk_min_score: 65              # if trading AGAINST it, higher bar
+    tag_regime: [trend_up, trend_down, chop, event_driven]
+    event_driven_unfired: stand_down
+  a_plus:                                    # [yours] the edge
+    flow_ratio_min: 6                        # Unusual Whales, in trade direction
+    gauge_confirms: true
+    chart_aligned: true
+    all_required: true
+  concentration:                             # [YT#2]
+    max_per_ticker: 1
+    max_per_sector: 1
+  gut_check:                                 # [yours] replaces paper-mode
+    question: "Would I take this with my own money?"
+    must_be: yes
+
+concurrency:
+  max_open_positions: 2
+
+exits:
+  take_profit_pct: [50, 100]
+  hard_stop_pct: -40
+  stop_exceptions: none
+  intent: "stack singles, no home runs"
+
+execution:                                   # [yours] you are the GO, twice
+  order_type: limit_only
+  limit_price: mid
+  philosophy: "conditions, never orders"     # [YT#2] propose, never auto-fire
+  workflow:
+    - "Claude proposes setup as CONDITIONS"
+    - "user says GO (gate #1 — the trade)"
+    - "review_option_order — show preview"
+    - "place_option_order (limit, single-leg, ****3232)"
+    - "confirm fill, append to journal/trades.jsonl"
+
+risk_controls:
+  per_trade_risk_target_pct: 5
+  max_drawdown_pct: 10
+  daily_loss_cap_trades: 2                    # 2 losers = done for the day
+
+# ─────────────────────────────────────────────────────────────────────
+# CONSTITUTIONAL — the LEARN loop may NEVER edit these. Only you can.
+# ─────────────────────────────────────────────────────────────────────
+hard_rails_locked:
+  - exits.hard_stop_pct
+  - risk_controls.max_drawdown_pct
+  - goal.constraints.max_total_drawdown_pct
+  - risk_controls.daily_loss_cap_trades
+  - concurrency.max_open_positions
+  - execution.order_type
+  - execution.workflow            # the manual-GO step is sacred
+  - objective.primary_metric
+
+# ─────────────────────────────────────────────────────────────────────
+# EDITABLE — what the weekly loop is allowed to refine (one per cycle)
+# ─────────────────────────────────────────────────────────────────────
+editable_by_loop:
+  - gates.a_plus.flow_ratio_min
+  - gates.macro.with_risk_min_score
+  - gates.macro.against_risk_min_score
+  - instrument.premium_per_contract_usd
+  - gates.concentration.max_per_sector
+  - exits.take_profit_pct          # within reason; cannot be lowered to game win-rate
+
+scale_up_plan:
+  - "account >= 2500 -> premium band [1.50, 2.50]"
+  - "account >= 5000 -> premium band [3.00, 5.00]"

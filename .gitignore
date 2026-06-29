@@ -1,0 +1,20 @@
+# Local data + secrets — never commit
+data/monitor.db
+data/snapshots/*.json
+data/shots/*.png
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp

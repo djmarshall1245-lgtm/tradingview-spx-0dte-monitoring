@@ -1,0 +1,243 @@
+# strategy.yaml — the current playbook Claude reads at the start of every
+# session. When THIS file changes (via friday_loop + your GO), the system
+# "learned". Versioned; every prior version snapshots to history/.
+# Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
+
+version: "02"
+based_on_goal: strategy/goal.yaml
+
+instrument:
+  type: equity_options
+  legs: single_leg
+  side: [long_call, long_put]
+  universe: liquid_names_only
+  premium_per_contract_usd: [1.50, 2.50]   # sized for $2.5k (scale_up_plan tier)
+
+direction:
+  allow_long: true
+  allow_short: true
+
+# ─────────────────────────────────────────────────────────────────────
+# PRE-TRADE GATES — all must pass. Deterministic where possible.
+# ─────────────────────────────────────────────────────────────────────
+gates:
+  macro:                                    # [YT#2] 0-100 score, lib/macro_gate.py
+    required: true
+    with_risk_min_score: 50                 # if trading WITH broad risk
+    against_risk_min_score: 65              # if trading AGAINST it, higher bar
+    tag_regime: [trend_up, trend_down, chop, event_driven]
+    event_driven_unfired: stand_down
+  a_plus:                                    # [yours] the edge
+    flow_ratio_min: 6                        # Unusual Whales, in trade direction
+    gauge_confirms: true
+    chart_aligned: true
+    all_required: true
+  concentration:                             # [YT#2]
+    max_per_ticker: 1
+    max_per_sector: 1
+  iv_filter:                                 # [v02] don't overpay for long premium
+    source: lib/tasty.py                     # Tastytrade IV rank (0-100)
+    applies_to: candidate_ticker
+    rules:
+      - iv_rank_below: 30                    # cheap -> GREEN, ideal entry
+        action: pass
+      - iv_rank_between: [30, 70]            # mid -> CONDITIONAL
+        action: pass_if_trend_and_flow_confirm
+        note: "allowed only when SIGNAL=TREND and flow=CONFIRM"
+      - iv_rank_above: 70                    # rich -> STAND DOWN
+        action: stand_down
+        note: "overpaying for theta/vega; revisit when account supports selling"
+  gut_check:                                 # [yours] replaces paper-mode
+    question: "Would I take this with my own money?"
+    must_be: yes
+
+concurrency:
+  max_open_positions: 2
+
+exits:
+  take_profit_pct: [50, 100]
+  hard_stop_pct: -40
+  stop_exceptions: none
+  intent: "stack singles, no home runs"
+
+execution:                                   # [yours] you are the GO, twice
+  order_type: limit_only
+  limit_price: mid
+  philosophy: "conditions, never orders"     # [YT#2] propose, never auto-fire
+  workflow:
+    - "Claude proposes setup as CONDITIONS"
+    - "user says GO (gate #1 — the trade)"
+    - "review_option_order — show preview"
+    - "place_option_order (limit, single-leg, ****3232)"
+    - "confirm fill, append to journal/trades.jsonl"
+
+risk_controls:
+  per_trade_risk_target_pct: 5
+  max_drawdown_pct: 10
+  daily_loss_cap_trades: 2                    # 2 losers = done for the day
+
+# ─────────────────────────────────────────────────────────────────────
+# CONSTITUTIONAL — the LEARN loop may NEVER edit these. Only you can.
+# ─────────────────────────────────────────────────────────────────────
+hard_rails_locked:
+  - exits.hard_stop_pct
+  - risk_controls.max_drawdown_pct
+  - goal.constraints.max_total_drawdown_pct
+  - risk_controls.daily_loss_cap_trades
+  - concurrency.max_open_positions
+  - execution.order_type
+  - execution.workflow            # the manual-GO step is sacred
+  - objective.primary_metric
+
+# ─────────────────────────────────────────────────────────────────────
+# EDITABLE — what the weekly loop is allowed to refine (one per cycle)
+# ─────────────────────────────────────────────────────────────────────
+editable_by_loop:
+  - gates.a_plus.flow_ratio_min
+  - gates.macro.with_risk_min_score
+  - gates.macro.against_risk_min_score
+  - instrument.premium_per_contract_usd
+  - gates.concentration.max_per_sector
+  - gates.iv_filter.rules           # IV-rank thresholds (refine with data, not loosen)
+  - exits.take_profit_pct          # within reason; cannot be lowered to game win-rate
+
+# ─────────────────────────────────────────────────────────────────────
+# TERMINAL ENGINE — semi-automated Python loop (lib/engine.py)
+# Polls TradingView MCP for AR Squeeze signals, freezes for manual
+# approval, then routes to Robinhood MCP. NEVER auto-fires.
+# ─────────────────────────────────────────────────────────────────────
+terminal_engine:
+  enabled: false                               # flip to true when lib/engine.py is ready
+  data_source: tradingview_mcp                 # reads via data_get_pine_tables
+  study_filter: "AR 0DTE"                      # substring match for the Pine study name
+  broker: robinhood_mcp                        # ****3232, single-leg only
+  poll_interval_sec: 15                        # seconds between chart reads (idle loop)
+
+  # ── 1. TRIGGER VARIABLES (maps to AR Squeeze Pine Script) ──────────
+  # The engine monitors these booleans from the AR Squeeze dashboard
+  # (pulled via data_get_pine_tables, study_filter "AR SQUEEZE").
+  # When a *Confirm fires, the loop freezes and prompts.
+  triggers:
+    long:
+      confirm: callConfirm                     # entry gate — True = signal fired
+      types:
+        trend: callTrend                       # if True → "CALL TREND" (full conviction)
+        scalp: callScalp                       # if True → "CALL SCALP" (confluence ≥3 required)
+    short:
+      confirm: putConfirm
+      types:
+        trend: putTrend                        # "PUT TREND"
+        scalp: putScalp                        # "PUT SCALP"
+    # EARLY signals (callEarly/putEarly) are PREP ONLY — never trigger
+    # the approval prompt. Log them for awareness, do not act.
+    early_signals: log_only
+
+  # ── 2. DASHBOARD VARIABLES (shown in approval prompt) ──────────────
+  # All read from AR Squeeze dashboard; displayed to user at trigger.
+  dashboard_display:
+    - field: close                             # SPX entry price
+    - field: tick_ma                           # $TICK 5MA (threshold: ≥200 or ≤-200)
+      threshold_long: ">= 200"
+      threshold_short: "<= -200"
+    - field: tlt_chg                           # TLT intraday % change
+      threshold_var: tltThresh                 # compared to Pine's tltThresh input
+    - field: confluence                        # x/6 score from dashboard
+      min_for_scalp: 3                         # SCALP requires ≥3; TREND = any
+    - field: squeeze_state                     # SQZ firing / momentum direction
+    - field: signal                            # TREND / SCALP / EARLY / WATCH
+    - field: time_window                       # ACTIVE / LUNCH / CLOSE OUT / WAIT
+
+  # ── 3. TARGET ARCHITECTURE (Voodoo levels from chart) ──────────────
+  # Pulled from data_get_pine_labels, study_filter "AR SQUEEZE".
+  targets:
+    calls:
+      tp1: R1                                  # first Voodoo resistance
+      tp2: R2                                  # second Voodoo resistance
+      stop_ref: "low[1]"                       # prior bar low = chart invalidation
+    puts:
+      tp1: S1                                  # first Voodoo support
+      tp2: S2                                  # second Voodoo support
+      stop_ref: "high[1]"                      # prior bar high = chart invalidation
+    # Hard stop = exits.hard_stop_pct (-40%) — this is the MONEY stop.
+    # Chart invalidation (stop_ref above) is separate — exit on whichever
+    # hits first. Do NOT override hard_stop_pct here.
+
+  # ── 4. APPROVAL PROMPT (terminal UI on trigger) ────────────────────
+  # When a trigger fires, clear the terminal and display this block.
+  # Loop is FROZEN until user types y/n. No timeout on the prompt.
+  approval:
+    format: |
+      ============================================================
+       [AR 0DTE SPX SYSTEM] - TRIGGER CONFIRMED
+      ============================================================
+      TYPE:           {signal_type}
+      SPX Entry:      {close}
+      $TICK 5MA:      {tick_ma}  (threshold: >= 200 / <= -200)
+      TLT Chg:        {tlt_chg}%  (threshold: {tlt_thresh})
+      Confluence:     {confluence}/6
+      Squeeze:        {squeeze_state}
+      Time Window:    {time_window}
+      ------------------------------------------------------------
+      TARGET ARCHITECTURE (Voodoo Levels):
+        TP1:          {tp1}  ({tp1_label})
+        TP2:          {tp2}  ({tp2_label})
+        Hard Stop:    {hard_stop_pct}% of premium  (strategy.yaml)
+        Chart Stop:   {chart_stop}  ({chart_stop_label})
+      ------------------------------------------------------------
+      [ACTION]: Build 0DTE SPX single-leg {direction}.
+      Strike guidance: ATM to 1-strike ITM (~0.45-0.55 delta)
+      Order type: LIMIT at mid | Account: ****3232
+      Trade #{trade_number} of {daily_cap} today.
+
+      Approve execution? (y/n):
+
+  # ── 5. INPUT HANDLING & SAFETY ─────────────────────────────────────
+  input_handling:
+    approve: ["y", "yes"]                      # → execute_spx_order(), log timestamp
+    reject: ["n", "no"]                        # → log "Trade Disapproved", sleep 1 bar
+    reject_cooldown: current_bar_remainder     # prevent re-prompt on same candle
+
+  # ── 6. POSITION MANAGEMENT (while a trade is active) ───────────────
+  position_management:
+    exit_signals:                              # AR Squeeze exit booleans
+      long: exitCall                           # True → close the long call
+      short: exitPut                           # True → close the long put
+    exit_triggers:                             # any one = immediate exit
+      - signal_flip                            # signal reverses direction
+      - vwap_lost                              # price loses VWAP
+      - mon_exit                               # MON EXIT flag fires
+      - hard_stop_hit                          # P&L <= exits.hard_stop_pct (-40%)
+      - time_exit                              # 15:30 ET — force close, no exceptions
+    time_exit_et: "15:30"                      # matches existing 3:30 PM ET close-out
+    time_exit_behavior: |
+      Cancel any pending approval prompts. Force sell-to-close any open
+      position via limit order at current bid. Log "TIME EXIT 15:30 ET".
+      This prevents 0DTE cash-settlement / assignment risk.
+
+  # ── 7. EXECUTION FLOW (broker integration) ─────────────────────────
+  # Mirrors the existing execution.workflow — the engine automates the
+  # data pull + prompt, but the human GO and review steps are sacred.
+  execution_flow:
+    - "engine polls TradingView MCP for AR Squeeze dashboard"
+    - "trigger fires → engine freezes, displays approval prompt"
+    - "user types 'y' (gate #1 — the trade GO)"
+    - "engine calls get_option_chains → picks ATM/1-ITM 0DTE strike"
+    - "engine calls get_option_quotes → checks spread + delta + volume"
+    - "engine calls review_option_order → shows preview to terminal"
+    - "user confirms preview (gate #2 — the order GO)"
+    - "engine calls place_option_order (limit, single-leg, ****3232)"
+    - "engine logs fill to journal/trades.jsonl"
+    - "engine transitions to position_management loop"
+
+  # ── 8. CONSTRAINTS (inherited from strategy.yaml, not overridden) ──
+  # These are NOT new rules — they point to the existing source of truth.
+  inherits:
+    hard_stop_pct: exits.hard_stop_pct         # currently -40%
+    daily_cap: risk_controls.daily_loss_cap_trades  # currently 2
+    order_type: execution.order_type           # limit_only
+    max_positions: concurrency.max_open_positions   # currently 2
+    premium_band: instrument.premium_per_contract_usd  # [1.50, 2.50]
+
+scale_up_plan:
+  - "account >= 2500 -> premium band [1.50, 2.50]   # ACTIVE (v02)"
+  - "account >= 5000 -> premium band [3.00, 5.00]"

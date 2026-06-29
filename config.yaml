@@ -1,0 +1,127 @@
+# config.yaml — knobs for the OBSERVE layer. Edit freely; no code changes.
+
+# 12 vetted liquid names — penny-wide spreads, deep options chains, heavy
+# UW flow, news-rich. Sized so concentration rule (1/sector) is meaningful.
+watchlist:
+  - SPY     # broad index
+  - QQQ     # Nasdaq index
+  - IWM     # small caps
+  - NVDA    # semis (mega-flow)
+  - AMD     # semis (alt)
+  - AAPL    # mega hardware
+  - MSFT    # mega software
+  - META    # comm services
+  - GOOGL   # comm services (alt)
+  - AMZN    # consumer disc (e-com)
+  - TSLA    # consumer disc (auto/EV) — high vol, news-rich
+  - XLF     # financials sector
+
+# Sector tags used by the concentration gate (strategy.yaml gates.concentration).
+# Granularity chosen so 1 mag-7 position doesn't lock out all the others, but
+# clear correlation pairs (NVDA+AMD, META+GOOGL, AMZN+TSLA) DO block each other.
+sector_map:
+  SPY: index
+  QQQ: index
+  IWM: index
+  NVDA: semis
+  AMD: semis
+  AAPL: hardware_tech
+  MSFT: software_tech
+  META: comm_services
+  GOOGL: comm_services
+  AMZN: consumer_disc
+  TSLA: consumer_disc
+  XLF: financials
+
+# ⓪ Overnight tells — pre-open global tape (lib/overnight.py). Prune/expand
+# freely; label -> yfinance symbol. Pulled deterministically each brief.
+overnight_tells:
+  "/ES (S&P fut)":    "ES=F"
+  "/NQ (Nasdaq fut)": "NQ=F"
+  "VIX":              "^VIX"
+  "10Y yield":        "^TNX"
+  "Dollar (DXY)":     "DX-Y.NYB"
+  "USD/JPY":          "JPY=X"
+  "Crude (WTI)":      "CL=F"
+  "Copper":           "HG=F"
+  "Gold":             "GC=F"
+  "Bitcoin":          "BTC-USD"
+  "Nikkei":           "^N225"
+  "KOSPI":            "^KS11"
+  "DAX":              "^GDAXI"
+
+macro_gate:                                # [YT#2] weights sum to 1.0
+  weights:
+    vix_level: 0.30
+    term_structure: 0.25                   # VIX vs VIX3M
+    breadth: 0.25                          # % of SPY constituents > 200d MA (proxy: SPY vs its 200d)
+    credit: 0.20                           # HYG vs TLT
+  risk_free_rate: 0.045
+
+analytics:
+  iv_lookback_days: 252
+  iv_min_history: 20                       # until then, label "building history"
+  iv_rich_above: 70
+  iv_cheap_below: 30
+  concentration_ticker_cap_pct: 40
+  concentration_sector_cap_pct: 60
+  dte_flag_days: 45                        # surface upcoming time-decay/roll (fact only)
+
+alerts:                                    # [YT#2] conditions, never buy/sell
+  target_near_pct: 80                      # within 80% of target -> info
+  iv_change_pct: 20                        # IV moved >= 20% vs prior snapshot -> warn
+  new_strike_band_pct: 30                  # only flag new strikes within +/-30% of holdings
+
+news:
+  window_days: 3
+  # No API key needed. Free headline feed = yfinance .news. Enrichment +
+  # summarization happens inside Claude Code (your subscription) using
+  # Firecrawl + UW MCP tools — see prompts/morning_brief.md.
+  free_sources:                            # vetted, reliable, no paywall
+    # PRIMARY — investing.com. Best free source for news + DATED econ events.
+    # Lead here for the economic calendar (real-time, timestamped — fixes the
+    # wrong-weekday/wrong-date problem). NOTE: investing.com has aggressive
+    # bot protection; if Firecrawl is blocked/empty, fall back to the others.
+    primary:
+      - "https://www.investing.com/economic-calendar/"   # dated econ events
+      - "https://www.investing.com/news/"                # market news
+      - "https://www.investing.com/news/stock-market-news"
+      - "https://www.investing.com/news/economy"
+    economic_calendar:
+      - "https://www.investing.com/economic-calendar/"   # PRIMARY — use this
+      - "https://www.forexfactory.com/calendar"
+    earnings_calendar:
+      - "https://www.investing.com/earnings-calendar/"
+      - "https://finance.yahoo.com/calendar/earnings"
+      - "https://www.nasdaq.com/market-activity/earnings"
+    market_news:
+      - "https://www.investing.com/news/stock-market-news"  # PRIMARY
+      - "https://www.reuters.com/markets/"
+      - "https://www.cnbc.com/markets/"
+      - "https://www.marketwatch.com/"
+      - "https://finance.yahoo.com/news/"
+      - "https://apnews.com/hub/financial-markets"
+    macro_data:
+      - "https://fred.stlouisfed.org/"           # Fed economic data
+      - "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html"
+      - "https://www.treasury.gov/resource-center/data-chart-center/"
+    options_data:
+      - "https://www.cboe.com/"
+      - "https://marketchameleon.com/"
+    company_filings:
+      - "https://www.sec.gov/edgar/searchedgar/companysearch"
+    geopolitics:
+      - "https://www.reuters.com/world/"
+      - "https://apnews.com/hub/world-news"
+
+# ─────────────────────────────────────────────────────────────────────
+# Screenshot regions for lib/screenshot.py. [x, y, width, height] in screen
+# points. PLACEHOLDERS — calibrate once on your Mac (see README "Calibrate
+# screenshot regions"). Until then use `--window` to click-capture.
+# ─────────────────────────────────────────────────────────────────────
+screenshots:
+  regions:
+    chart: [0, 0, 1200, 800]               # TradingView chart pane
+    flow:  [1200, 0, 720, 500]             # Unusual Whales flow
+    gauge: [1200, 500, 720, 300]           # the gauge
+    chain: [0, 800, 1200, 280]             # options chain

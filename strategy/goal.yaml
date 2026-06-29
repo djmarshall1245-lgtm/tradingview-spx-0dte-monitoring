@@ -1,0 +1,78 @@
+# goal.yaml — the single objective the LEARN layer optimizes toward.
+# Everything in friday_loop.md is measured against THIS file.
+# Pattern borrowed from YouTuber #1 (Hermes); numbers are yours.
+
+owner: djmarshall1245@gmail.com
+go_live: TBD   # pending funding — see funding_source below
+funding_source:
+  note: "Capital sourced from LSTA (Lisata Therapeutics) tender proceeds"
+  tender: "Kuva Labs / Kuva Acquisition Corp — $4.00/share cash + 1 CVR"
+  tender_expires: 2026-07-10   # Friday; may be extended if threshold unmet
+  cash_eta: "~2026-07-13 to 07-15 (1-3 business days after expiration), then ACH to RH"
+  caveat: "Immediate capital = $4.00/share only; CVR (up to $3) is contingent, pays later if ever"
+  go_live_rule: "Account is live ONLY when cash shows as available buying power in ****3232"
+  # Funding is landing in tranches. The strategy was sized at $1000; the
+  # premium band / -40% stop / $700 floor only line up cleanly at that level.
+  tranches:
+    - date: 2026-06-24
+      usd: 794
+      note: "First tranche landed in ****3232 (initial transfer from main)."
+    - date: TBD
+      usd: ~1706
+      note: "Top-up to $2500 pending — user will transfer remainder."
+  partial_funding_rule: |
+    RESOLVED — account target raised to $2500 (v02). Once funded,
+    daily_loss_cap_trades returns to its base value of 2 (strategy.yaml).
+    While ****3232 is BELOW $2500, apply v01 partial-funding logic:
+    one trade per day if under $1000; two trades per day if $1000-2499.
+    At $2500+, this rule is fully inactive.
+account:
+  broker: robinhood
+  subaccount: "****3232"
+  starting_capital_usd: 2500
+  capital_type: real
+  intent: "spin and grow the account, not gamble"
+
+# ─────────────────────────────────────────────────────────────────────
+# THE OBJECTIVE — expectancy per trade
+# ─────────────────────────────────────────────────────────────────────
+objective:
+  primary_metric: expectancy_per_trade
+  formula: "(win_rate * avg_win_usd) - (loss_rate * avg_loss_usd)"
+  units: usd_per_trade
+  target: positive_and_rising
+  measurement_window: rolling_20_trades
+  # Why expectancy and not win rate: with a -40% stop and +50-100% targets,
+  # a 90% win rate that cuts winners early still LOSES money. Expectancy is
+  # the only metric that can't be gamed that way.
+
+# What success and failure look like (the score boundaries)
+success:
+  expectancy_usd: ">= 20"        # avg trade nets >= $20 over the window
+  win_rate_floor: 0.40           # informational; not the objective
+failure:
+  expectancy_usd: "< 0 for 2 consecutive weeks"
+  account_floor_usd: 1000        # absolute floor (user set); 20% DD hard rail binds first
+
+# Hard constraints the optimizer may NEVER relax (see strategy.yaml hard_rails)
+constraints:
+  max_daily_drawdown_pct: 10
+  max_total_drawdown_pct: 20
+  breach_behavior: halt_and_ask_user
+
+improvement_definition: |
+  Expectancy rises over the rolling 20-trade window WITHOUT loosening any
+  hard rail. Improvement comes from better setup selection, not bigger bets
+  and not wider stops.
+
+goodhart_guards:
+  - "Shrinking TP targets to lift win rate = forbidden (gaming the metric)."
+  - "Widening stops to avoid logging losses = forbidden (gaming the metric)."
+  - "Sizing up after a win streak = forbidden (goal is consistency, not parlay)."
+
+# Reflection trigger — your choice C: whichever comes first
+reflection:
+  trigger: first_of
+  every_n_closed_trades: 5
+  and_every: friday_close
+  one_variable_only: true

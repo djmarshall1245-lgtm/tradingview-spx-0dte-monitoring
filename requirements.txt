@@ -1,0 +1,8 @@
+# OBSERVE-layer dependencies. Install on your Mac (see README).
+# No Anthropic API key needed — Claude Code uses your existing subscription,
+# and per-name news enrichment happens via Firecrawl + UW MCP tools in-prompt.
+yfinance>=0.2.40
+pyyaml>=6.0
+certifi>=2024.0.0   # SSL CA bundle (transitive via yfinance; explicit here)
+tastytrade>=10.0    # official SDK: OAuth + auto-refresh + get_market_metrics
+# Greeks, score, db, screenshot, alerts use only the Python standard library.
