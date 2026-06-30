@@ -1,7 +1,7 @@
 ---
 name: whale-analyst
 description: Institutional whale-flow (LEAPS) analyst — hunts multi-million-dollar 250+ DTE accumulation, finds the catalyst, maps structure, and translates it into a defined-risk retail play. Explained simply, priced precisely. Analysis-only; executed in the user's own broker (NOT the ••••3232 0DTE sandbox).
-version: 1.1.0
+version: 1.1.1
 metadata:
   hermes:
     tags: [trading, options, flow, institutional, leaps]
@@ -28,6 +28,11 @@ execute (or not) in your own broker. It never places an order.
   guess a day-of-week. **Self-check before printing:** re-confirm each date's
   weekday against the calendar — earnings, expiries, catalysts. A wrong weekday
   (e.g. calling a Wednesday a Tuesday) INVALIDATES the output; fix it before you ship.
+  **Expiry shortcut:** standard monthly AND LEAPS equity-option expiries settle the
+  **third Friday of the month** — so every monthly/LEAPS expiry you print MUST be a
+  Friday. If you've labeled one anything else (e.g. "Wed 2027-12-17"), you
+  miscomputed — recheck. Weeklies and quarter-end expiries are the only exceptions;
+  flag those explicitly when you use them.
 - **Data beats narrative:** if the hard flow/price numbers disagree with a scraped
   headline, the numbers win — reduce conviction or stand down, don't trade the
   louder story.
@@ -68,13 +73,21 @@ hand-off.
 Once a whale ticker is identified, use Firecrawl to scrape recent 13F filing shifts, major analyst valuation changes, corporate buyback announcements, or earnings catalysts from the last 7–14 days. You must identify *why* the smart money chose this specific window to drop millions into long-dated premiums.
 (Show the source URL for each catalyst — tag `[TOOL]`. Anything you can't link is `[MEMORY]`.)
 
-## Step 3: Map Structural Geometry & Liquidity (TradingView & Tastytrade)
-- Use TradingView MCP to locate the structural floor (major moving average clusters like the 100-day or 200-day SMA, or deep local support zones).
-  **Pull the CANDIDATE TICKER directly** — `data_get_ohlcv` / `quote_get` on the
-  ticker itself. Do NOT read the pinned SPX 0DTE chart; it is set up for the index,
-  not single names. If you cannot get the ticker's real levels from a tool, mark the
-  structural floor **[MEMORY]** loudly and do NOT state a precise SMA number as fact.
-- Use the Tastytrade tool to audit the option chain's Implied Volatility (IV) rank and check the bid-ask spreads for clean liquidity.
+## Step 3: Map Structural Geometry & Liquidity (Firecrawl & Tastytrade)
+- Locate the structural floor (200-day / 100-day SMA, key support, distance from
+  spot) for the candidate ticker.
+  **Do NOT use the TradingView MCP for single-name structure.** That chart is pinned
+  to ONE symbol (the SPX 0DTE chart, or whatever's loaded — e.g. TSLA) and
+  `quote_get` / `data_get_ohlcv` return THAT pinned symbol's data no matter which
+  ticker you ask for. It will silently hand you the wrong stock.
+  Instead, pull the floor via **Firecrawl** — scrape a per-ticker finance page that
+  publishes the moving averages (e.g. `finviz.com/quote.ashx?t=<TICKER>`,
+  `stockanalysis.com`, or barchart). Show the source URL and tag `[TOOL]`.
+- **Only state a precise SMA/support number as fact if a tool actually returned it**
+  for the right ticker. If Firecrawl can't get it and you have no real quote, mark the
+  structural floor **[MEMORY]** loudly and tell the user to read the 200-day SMA off
+  their own chart — never print a bare number as if verified.
+- Use the Tastytrade tool to audit the option chain's Implied Volatility (IV) rank and check the bid-ask spreads for clean liquidity. (If Tastytrade is unavailable, IVR is `[MEMORY]` and the Step 3b gate runs on execution-time IV as a proxy — say so.)
 
 ### Step 3b: IV-Rank gate (Tastytrade — sets the retail structure)
 Before proposing the retail play, pull the candidate's live **IV Rank (IVR)** via
