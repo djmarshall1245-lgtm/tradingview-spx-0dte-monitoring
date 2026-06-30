@@ -3,6 +3,11 @@
     "tradingview": {
       "command": "node",
       "args": ["/Users/andrereynolds/tradingview-mcp-jackson/src/server.js"]
+    },
+    "gemini": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" }
     }
   }
 }
