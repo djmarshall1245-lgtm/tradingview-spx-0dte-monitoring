@@ -8,6 +8,11 @@
       "command": "npx",
       "args": ["-y", "gemini-mcp-tool"],
       "env": { "GEMINI_API_KEY": "${GEMINI_API_KEY}" }
+    },
+    "groq": {
+      "command": "npx",
+      "args": ["-y", "groq-compound-mcp-server"],
+      "env": { "GROQ_API_KEY": "${GROQ_API_KEY}" }
     }
   }
 }
