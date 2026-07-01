@@ -115,10 +115,21 @@ A headline is a [MEMORY]-class claim until the numbers confirm it.
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost
 always one of these three — check them in order:
 
-1. **Model — biggest lever.** Run `/model` and confirm you're on **Opus**
-   (`claude-opus-4-8`) for real reasoning work. Sonnet 4.6 is a capability
-   step down. Note: there is no `/FABLE` command — switch models only via
-   `/model`.
+1. **Model — biggest lever.** Run `/model` and confirm you're on **Fable 5**
+   (`/model claude-fable-5`) for real reasoning work — it's Anthropic's
+   Claude 5 tier, ABOVE Opus. Fallback order: Fable 5 → Opus
+   (`claude-opus-4-8`). Sonnet 4.6 is a capability step down. Switch models
+   only via `/model` — there is no `/FABLE` slash command.
+
+   **Mac CLI is PINNED at Claude Code 2.1.108 — do NOT update it.**
+   Versions after 2.1.108 ship binaries that crash this Intel Mac with
+   `zsh: illegal hardware instruction` (verified 2026-07-01: both the npm
+   2.1.198 build AND the official `install.sh` native binary crashed;
+   2.1.108 works). `DISABLE_AUTOUPDATER=1` is set in `~/.zshrc` on purpose
+   — leave it. Model routing is server-side, so 2.1.108 still runs Fable 5
+   fine. To retest Intel support later: temporarily reinstall latest via
+   npm; if it still crashes, `npm install -g @anthropic-ai/claude-code@2.1.108`
+   to restore.
 
 2. **Session hygiene — run `/clear` between unrelated tasks.** File reads pile
    up in context (a long session can carry 40k+ tokens of stale read output).
