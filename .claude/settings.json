@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"TODAY (system clock, trust this over memory): $(date '+%A %Y-%m-%d %H:%M %Z')\""
+          }
+        ]
+      }
+    ]
+  }
+}
