@@ -3,20 +3,14 @@
 # "learned". Versioned; every prior version snapshots to history/.
 # Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
 
-version: "02.1"
+version: "02"
 based_on_goal: strategy/goal.yaml
 
 instrument:
   type: equity_options
   legs: single_leg
   side: [long_call, long_put]
-  universe: any_liquid_equity            # [v02.1, user GO 2026-07-02] watchlist is the
-                                          # default scan list, NOT a restriction. Any name
-                                          # qualifies if it passes the liquidity screen:
-  liquidity_screen:                       # all three required for off-watchlist names
-    min_option_volume: high               # active chain, not a ghost town
-    max_spread: tight                     # penny-to-nickel wide near ATM
-    min_underlying_price_usd: 5           # no sub-$5 lottery shells (e.g. ORBS $0.71)
+  universe: liquid_names_only
   premium_per_contract_usd: [1.50, 2.50]   # sized for $2.5k (scale_up_plan tier)
 
 direction:

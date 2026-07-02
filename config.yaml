@@ -2,6 +2,10 @@
 
 # 12 vetted liquid names — penny-wide spreads, deep options chains, heavy
 # UW flow, news-rich. Sized so concentration rule (1/sector) is meaningful.
+# [2026-07-02, user GO] This is the DEFAULT scan list, not a restriction —
+# strategy.yaml instrument.universe = any_liquid_equity. Off-watchlist names
+# must pass the liquidity_screen there; unmapped tickers get sector-tagged
+# ad hoc for the concentration gate.
 watchlist:
   - SPY     # broad index
   - QQQ     # Nasdaq index
