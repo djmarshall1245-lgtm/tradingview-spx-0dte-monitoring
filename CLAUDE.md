@@ -61,6 +61,12 @@ FMP plan-tier quirks (verified 2026-07-01): `^SPX` is BLOCKED on the
 current plan — use `^GSPC` (same index) via the indexes tool, or SPY as
 the ETF proxy. FMP has no `ES1!` — Fireline/Treeline stays on TradingView.
 
+Alpaca plan quirks (verified 2026-07-01): INDEX data is NOT authorized on
+the current plan ("not authorized for index data" on SPX) — index prints
+come from FMP (^GSPC). Alpaca's lane: stocks/ETFs (SPY), options chains,
+intraday bars, news. Stock feed is IEX (not full SIP) — fine for
+snapshots/levels; the Robinhood order preview is the acted-on bid/ask.
+
 If ANY are missing or unauthenticated, HALT and tell me which:
 
 > "MCP CHECK FAILED — <server> is <missing | needs authentication>.
