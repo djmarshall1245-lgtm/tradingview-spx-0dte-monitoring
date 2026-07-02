@@ -13,6 +13,15 @@
       "command": "npx",
       "args": ["-y", "groq-compound-mcp-server"],
       "env": { "GROQ_API_KEY": "${GROQ_API_KEY}" }
+    },
+    "alpaca": {
+      "command": "npx",
+      "args": ["-y", "@alpaca-open-api/mcp"],
+      "env": {
+        "ALPACA_API_KEY": "${ALPACA_API_KEY}",
+        "ALPACA_API_SECRET": "${ALPACA_API_SECRET}",
+        "ALPACA_TOOLSETS": "data"
+      }
     }
   }
 }

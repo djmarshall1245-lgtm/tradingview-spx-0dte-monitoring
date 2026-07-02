@@ -51,6 +51,11 @@ these servers show **connected** (not `needs authentication`, not missing):
   4. `robinhood-trading`  — order preview + placement (sub ****3232)
   5. `FMP`                — deterministic quote layer: index prints, VIX,
                             SPY, market hours (backstops brief section ①)
+  6. `alpaca`             — market data #2: real-time quotes, intraday bars,
+                            options chains. DATA-ONLY by config
+                            (`ALPACA_TOOLSETS=data` in `.mcp.json`) — it has
+                            NO order tools; Robinhood stays the only
+                            execution arm.
 
 FMP plan-tier quirks (verified 2026-07-01): `^SPX` is BLOCKED on the
 current plan — use `^GSPC` (same index) via the indexes tool, or SPY as
@@ -400,6 +405,11 @@ manually at the desk. Full post-mortem + kill/re-enable commands:
 - `.mcp.json` defines the project's `tradingview` MCP server. The `args` path
   must point to the real `tradingview-mcp-jackson/src/server.js` on **this**
   machine. If it's wrong, the server fails to start every session.
+- `alpaca` (`@alpaca-open-api/mcp`) reads `ALPACA_API_KEY` +
+  `ALPACA_API_SECRET` from the shell env (set them in `~/.zshrc`, never in
+  this repo). `ALPACA_TOOLSETS=data` is set in `.mcp.json` ON PURPOSE — it
+  strips every trading/order tool from the server. Do not add `trading` to
+  that list; order flow goes through Robinhood MCP with manual approval only.
 - `.claude/launch.json` is a VS Code debugger format and is **not** read by
   Claude Code — it does nothing here.
 
