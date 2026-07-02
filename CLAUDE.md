@@ -42,13 +42,19 @@ loop with my GO, never via a recap.
 
 ## START-OF-SESSION RULE — verify MCP tools BEFORE any trading action
 
-Right after reading the YAML files, run `/mcp` and confirm all four of
+Right after reading the YAML files, run `/mcp` and confirm all five of
 these servers show **connected** (not `needs authentication`, not missing):
 
   1. `tradingview`        — chart reads (TradingView MCP)
   2. `unusualwhales`      — institutional flow, GEX, dark pool, max pain
   3. `firecrawl`          — news enrichment per held name
   4. `robinhood-trading`  — order preview + placement (sub ****3232)
+  5. `FMP`                — deterministic quote layer: index prints, VIX,
+                            SPY, market hours (backstops brief section ①)
+
+FMP plan-tier quirks (verified 2026-07-01): `^SPX` is BLOCKED on the
+current plan — use `^GSPC` (same index) via the indexes tool, or SPY as
+the ETF proxy. FMP has no `ES1!` — Fireline/Treeline stays on TradingView.
 
 If ANY are missing or unauthenticated, HALT and tell me which:
 
@@ -171,8 +177,11 @@ To trigger it, just say:
 ```
 SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
 
-① OVERNIGHT / MACRO                       [TOOL] Firecrawl web (show URLs)
-   /ES futures · VIX · 10Y yield · DXY · gold · crude — each w/ source URL
+① OVERNIGHT / MACRO                       [TOOL] FMP + Firecrawl web (URLs)
+   Hard prints from FMP first (deterministic, no scraping): S&P 500 = ^GSPC
+   (NOT ^SPX — plan-blocked) · ^VIX · SPY · market open/closed (marketHours).
+   /ES futures · 10Y yield · DXY · gold · crude — FMP has no ES1!; pull these
+   via Firecrawl w/ source URL (or FMP commodity/forex endpoints if they work).
    Overnight high/low · gap vs prior close
    → RISK read: oil + VIX + /ES direction together. Oil DOWN + VIX DOWN + ES UP
      = risk-ON; the reverse = risk-OFF. On a news-driven gap, say whether it's
