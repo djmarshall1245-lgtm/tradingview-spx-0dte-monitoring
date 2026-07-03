@@ -9,17 +9,37 @@ from pytrends.request import TrendReq
 # a batch, so group similar-magnitude terms together. Velocity ratio is
 # per-keyword vs its own history, so cross-batch comparison is safe.
 KEYWORD_BATCHES = [
-    # Batch 1: big-magnitude terms
+    # Batch 1: mega-volume consumer terms
     {
-        "Ozempic": "LLY/NVO (and inverse: PEP/MDLZ snacks)",
-        "roof repair": "BECN",
+        "Ozempic": "LLY/NVO (inverse: PEP/MDLZ snacks)",
         "Roblox codes": "RBLX",
+        "Temu": "PDD (inverse: AMZN low-end, DLTR)",
+        "Crocs": "CROX",
+        "DraftKings promo": "DKNG",
     },
-    # Batch 2: smaller-magnitude terms (kept separate so they don't get
-    # flattened to ~0 next to Ozempic-scale volume)
+    # Batch 2: large-volume product/brand terms
+    {
+        "roof repair": "BECN",
+        "Zepbound": "LLY",
+        "Celsius energy drink": "CELH",
+        "Birkenstock": "BIRK",
+        "Stanley tumbler": "private (proxy: retail sellers TSCO/DKS)",
+    },
+    # Batch 3: mid-volume brand/engagement terms
     {
         "home battery backup": "GNRC/BE",
         "e.l.f. lip oil": "ELF",
+        "Duolingo": "DUOL",
+        "Cava restaurant": "CAVA",
+        "On Cloud shoes": "ONON",
+    },
+    # Batch 4: intent / problem searches (lower volume, highest signal)
+    {
+        "whole house generator": "GNRC",
+        "mounjaro side effects": "LLY (adoption-curve read)",
+        "sell on TikTok Shop": "merchant adoption (inverse: ETSY/AMZN 3P)",
+        "solar panel installation": "ENPH/RUN/FSLR",
+        "Abercrombie": "ANF",
     },
 ]
 
