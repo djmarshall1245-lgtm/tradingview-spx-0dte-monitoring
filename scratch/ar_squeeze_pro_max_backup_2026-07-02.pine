@@ -1,0 +1,184 @@
+//@version=6
+indicator("AR 0DTE SPX Complete - F🔥M Squeeze Pro God+ Alerts", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+// === USER INPUTS ===
+sqzLength = input.int(20, "Squeeze Length", group="Squeeze")
+bbMult = input.float(2.0, "BB StdDev", group="Squeeze")
+kcLength = input.int(20, "KC Length", group="Squeeze")
+kcMult = input.float(1.5, "KC ATR Mult", group="Squeeze")
+emaLen = input.int(21, "21 EMA", group="Trend")
+atrLen = input.int(10, "Supertrend ATR", group="Trend")
+atrMult = input.float(3.0, "Supertrend Factor", group="Trend")
+tickThresh = input.int(200, "$TICK Threshold", group="Internals")
+tltThresh = input.float(0.0, "TLT % Threshold", group="Internals")
+
+// === VOODOO LINES - UPDATE DAILY PRE-MARKET ===
+r3 = input.float(7165, "Voodoo R3", group="Levels")
+r2 = input.float(7155, "Voodoo R2", group="Levels")
+r1 = input.float(7145, "Voodoo R1", group="Levels")
+pdh = input.float(7140, "Prev Day High", group="Levels")
+pdl = input.float(7120, "Prev Day Low", group="Levels")
+s1 = input.float(7115, "Voodoo S1", group="Levels")
+s2 = input.float(7105, "Voodoo S2", group="Levels")
+s3 = input.float(7095, "Voodoo S3", group="Levels")
+
+// === 1. 21 EMA TREND FILTER ===
+ema21 = ta.ema(close, emaLen)
+plot(ema21, "21 EMA", color.white, 2)
+
+// === 2. TTM SQUEEZE CORE LOGIC ===
+basis = ta.sma(close, sqzLength)
+dev = bbMult * ta.stdev(close, sqzLength)
+upperBB = basis + dev
+lowerBB = basis - dev
+ma = ta.sma(close, kcLength)
+rangema = ta.sma(ta.tr, kcLength)
+upperKC = ma + rangema * kcMult
+lowerKC = ma - rangema * kcMult
+sqzOn = lowerBB > lowerKC and upperBB < upperKC
+sqzOff = lowerBB < lowerKC and upperBB > upperKC
+
+// Squeeze Momentum Oscillator
+highest_high = ta.highest(high, kcLength)
+lowest_low = ta.lowest(low, kcLength)
+avg_hl_ema = ta.ema(math.avg(highest_high, lowest_low), kcLength)
+momentum = ta.linreg(close - avg_hl_ema, kcLength, 0)
+
+// === 3. MULTI-TIMEFRAME SQUEEZE ===
+sqz_15_on = request.security(syminfo.tickerid, "15", sqzOn)
+sqz_15_off = request.security(syminfo.tickerid, "15", sqzOff)
+sqz_30_on = request.security(syminfo.tickerid, "30", sqzOn)
+sqz_30_off = request.security(syminfo.tickerid, "30", sqzOff)
+allSqzFire = sqzOff and sqz_15_off and sqz_30_off
+
+// === 4. PORSCHE DOTS - SUPERTREND ===
+[supertrend, direction] = ta.supertrend(atrMult, atrLen)
+isLongTrend = direction < 0
+isShortTrend = direction > 0
+plot(isLongTrend? supertrend : na, "Porsche Long", style=plot.style_circles, color=color.lime, linewidth=3)
+plot(isShortTrend? supertrend : na, "Porsche Short", style=plot.style_circles, color=color.red, linewidth=3)
+
+// === 5. EARLY IN-N-OUT BAR COLORING ===
+ha_close = (open + high + low + close) / 4
+var float ha_open = na
+ha_open := (nz(ha_open[1]) + nz(ha_close[1])) / 2
+bullish = ha_close > ha_open and close > ema21 and momentum > 0
+bearish = ha_close < ha_open and close < ema21 and momentum < 0
+barcolor(bullish? color.lime : bearish? color.red : color.gray)
+
+// === 6. $TICK + TLT INTERNALS ===
+tick = request.security("TICK", timeframe.period, close)
+tick_ma = ta.sma(tick, 5)
+tlt = request.security("TLT", timeframe.period, close)
+tlt_chg = (tlt - tlt[1]) / tlt[1] * 100
+
+tickLong = tick_ma > tickThresh
+tickShort = tick_ma < -tickThresh
+tltLong = tlt_chg < tltThresh
+tltShort = tlt_chg > tltThresh
+
+// === 7. VOODOO LEVELS PLOT ===
+plot(r3, "R3", color.new(color.red, 0), 2, plot.style_linebr)
+plot(r2, "R2", color.new(color.maroon, 0), 1, plot.style_linebr)
+plot(r1, "R1", color.new(color.orange, 0), 1, plot.style_linebr)
+plot(pdh, "PDH", color.new(color.yellow, 0), 1, plot.style_linebr)
+plot(pdl, "PDL", color.new(color.yellow, 0), 1, plot.style_linebr)
+plot(s1, "S1", color.new(color.lime, 0), 2, plot.style_linebr)
+plot(s2, "S2", color.new(color.green, 0), 1, plot.style_linebr)
+plot(s3, "S3", color.new(color.teal, 0), 1, plot.style_linebr)
+
+// === 8. TRADE STATE MANAGEMENT ===
+var float entryPrice = na
+var string tradeType = na
+var float stopPrice = na
+var float tp1Price = na
+var float tp2Price = na
+var line tp1Line = na
+var line tp2Line = na
+var line slLine = na
+var line trailLine = na
+
+// Time filter: No new 0DTE after 2:30 PM ET
+timeOk = hour(time, "America/New_York") < 14 or (hour(time, "America/New_York") == 14 and minute(time, "America/New_York") < 30)
+exitTime = hour(time, "America/New_York") == 15 and minute(time, "America/New_York") >= 30
+
+// === 9. SIGNAL LOGIC: CALLS ===
+callSetup = sqzOff and bullish and isLongTrend and timeOk
+callConfirm = callSetup and tickLong and tltLong
+callScalp = callConfirm and not allSqzFire
+callTrend = callConfirm and allSqzFire
+
+// === 10. SIGNAL LOGIC: PUTS ===
+putSetup = sqzOff and bearish and isShortTrend and timeOk
+putConfirm = putSetup and tickShort and tltShort
+putScalp = putConfirm and not allSqzFire
+putTrend = putConfirm and allSqzFire
+
+// === 11. ENTER TRADE + SET TP/SL ===
+if callConfirm and na(entryPrice)
+    entryPrice := close
+    stopPrice := low[1]
+    tp1Price := r1
+    tp2Price := r2
+    tradeType := callTrend? "CALL TREND" : "CALL SCALP"
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+    tp1Line := line.new(bar_index, tp1Price, bar_index + 20, tp1Price, color=color.lime, style=line.style_dashed, width=2)
+    tp2Line := line.new(bar_index, tp2Price, bar_index + 40, tp2Price, color=color.lime, style=line.style_dotted, width=2)
+    slLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, style=line.style_solid, width=2)
+    trailLine := line.new(bar_index, supertrend, bar_index + 1, supertrend, color=color.yellow, width=3)
+
+if putConfirm and na(entryPrice)
+    entryPrice := close
+    stopPrice := high[1]
+    tp1Price := s1
+    tp2Price := s2
+    tradeType := putTrend? "PUT TREND" : "PUT SCALP"
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+    tp1Line := line.new(bar_index, tp1Price, bar_index + 20, tp1Price, color=color.lime, style=line.style_dashed, width=2)
+    tp2Line := line.new(bar_index, tp2Price, bar_index + 40, tp2Price, color=color.lime, style=line.style_dotted, width=2)
+    slLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, style=line.style_solid, width=2)
+    trailLine := line.new(bar_index, supertrend, bar_index + 1, supertrend, color=color.yellow, width=3)
+
+// === 13. EXIT LOGIC ===
+exitCall = not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "CALL") and (not isLongTrend or not tickLong or exitTime or close < stopPrice)
+exitPut = not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "PUT") and (not isShortTrend or not tickShort or exitTime or close > stopPrice)
+
+if exitCall or exitPut
+    entryPrice := na
+    tradeType := na
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+
+// Update trailing stop
+if not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "CALL")
+    line.set_y1(trailLine, supertrend)
+    line.set_y2(trailLine, supertrend)
+    line.set_x2(trailLine, bar_index + 1)
+if not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "PUT")
+    line.set_y1(trailLine, supertrend)
+    line.set_y2(trailLine, supertrend)
+    line.set_x2(trailLine, bar_index + 1)
+
+// === 14. PLOT LABELS ===
+plotshape(callScalp, "CALL SCALP", style=shape.labelup, color=color.lime, text="CALL SCALP", textcolor=color.black, location=location.belowbar, size=size.small)
+plotshape(callTrend, "CALL TREND", style=shape.labelup, color=color.lime, text="CALL TREND", textcolor=color.black, location=location.belowbar, size=size.normal)
+plotshape(putScalp, "PUT SCALP", style=shape.labeldown, color=color.red, text="PUT SCALP", textcolor=color.white, location=location.abovebar, size=size.small)
+plotshape(putTrend, "PUT TREND", style=shape.labeldown, color=color.red, text="PUT TREND", textcolor=color.white, location=location.abovebar, size=size.normal)
+
+// === 15. SQUEEZE BACKGROUND ===
+bgcolor(sqzOn? color.new(color.red, 90) : na)
+
+// === 16. INFO TABLE - FORCE DRAW ===
+var table infoTable = table.new(position.top_right, 1, 4, border_width=2, border_color=color.white, frame_color=color.black, frame_width=1)
+
+table.cell(infoTable, 0, 0, "SPX: " + str.tostring(close, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 0), text_size=size.large)
+table.cell(infoTable, 0, 1, "TLT %Chg: " + str.tostring(nz(tlt_chg, 0), "#.##") + "%", text_color=nz(tlt_chg, 0) < 0? color.lime : color.red, bgcolor=color.new(color.black, 0))
+table.cell(infoTable, 0, 2, "$TICK 5MA: " + str.tostring(nz(tick_ma, 0), "#"), text_color=nz(tick_ma, 0) > tickThresh? color.lime : nz(tick_ma, 0) < -tickThresh? color.red : color.yellow, bgcolor=color.new(color.black, 0))
+table.cell(infoTable, 0, 3, sqzOn? "SQUEEZE ON" : allSqzFire? "MTF TREND" : "SCALP MODE", text_color=sqzOn? color.red : color.lime, bgcolor=color.new(color.black, 0))
+
+// === 17. ALERTS ===
+alertcondition(callScalp, "CALL SCALP Entry", "0DTE CALL SCALP: Entry {{close}}, TP1 {{plot('R1')}}, Stop {{low[1]}}")
+alertcondition(callTrend, "CALL TREND Entry", "0DTE CALL TREND: Entry {{close}}, TP1 {{plot('R1')}}, TP2 {{plot('R2')}}, MTF Squeeze")
+alertcondition(putScalp, "PUT SCALP Entry", "0DTE PUT SCALP: Entry {{close}}, TP1 {{plot('S1')}}, Stop {{high[1]}}")
+alertcondition(putTrend, "PUT TREND Entry", "0DTE PUT TREND: Entry {{close}}, TP1 {{plot('S1')}}, TP2 {{plot('S2')}}, MTF Squeeze")
+alertcondition(exitCall, "EXIT CALLS", "EXIT CALLS: Trend flipped OR $TICK failed OR 15:30 ET")
+alertcondition(exitPut, "EXIT PUTS", "EXIT PUTS: Trend flipped OR $TICK failed OR 15:30 ET")
