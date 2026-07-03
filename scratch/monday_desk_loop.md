@@ -44,4 +44,16 @@ by Andre — never scheduled/unattended (LaunchAgents post-mortem applies).
    Every close also = review → GO → place.
 
 ## Logging format (monday_execution.log)
-[HH:MM ET] cycle N | signal | spot | key gate values | action taken
+EVERY cycle logs the FULL data snapshot, not just a summary line:
+1. Header: [HH:MM ET] cycle N | signal | action taken
+2. The complete payload.json contents (spot, vwap, ema_5/13/21, net_gex,
+   vold, add, option_bid/ask, expiration) — so any trade or skip can be
+   audited later against exactly what the bot saw.
+3. The bot's full stdout (gate audit + ticket or SAFE REGIME line).
+4. If a ticket was drafted: the review_option_order preview + Andre's
+   GO / NO-GO decision.
+5. Chart snapshot every cycle: MCP capture_screenshot (region "chart",
+   works regardless of window focus) → copy PNG into data/shots/ as
+   chart_<timestamp>.png. Do NOT rely on lib/screenshot.py regions —
+   they are uncalibrated placeholders (config.yaml:122) and capture
+   whatever window is frontmost.
