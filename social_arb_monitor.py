@@ -1,46 +1,73 @@
 import sys
+import time
 import pandas as pd
 from datetime import datetime
 from pytrends.request import TrendReq
 
+# Consumer-INTENT keywords (what buyers type, not tickers) -> mapped ticker.
+# pytrends caps 5 keywords per payload; keywords are normalized 0-100 within
+# a batch, so group similar-magnitude terms together. Velocity ratio is
+# per-keyword vs its own history, so cross-batch comparison is safe.
+KEYWORD_BATCHES = [
+    # Batch 1: big-magnitude terms
+    {
+        "Ozempic": "LLY/NVO (and inverse: PEP/MDLZ snacks)",
+        "roof repair": "BECN",
+        "Roblox codes": "RBLX",
+    },
+    # Batch 2: smaller-magnitude terms (kept separate so they don't get
+    # flattened to ~0 next to Ozempic-scale volume)
+    {
+        "home battery backup": "GNRC/BE",
+        "e.l.f. lip oil": "ELF",
+    },
+]
+
+VELOCITY_ALERT_THRESHOLD = 1.50
+
+
+def scan_batch(pytrends, keyword_map):
+    keywords = list(keyword_map.keys())
+    print(f"[MONITOR] Pulling trend data for batch: {keywords}")
+
+    pytrends.build_payload(keywords, cat=0, timeframe='today 3-m', geo='US', gprop='')
+    df = pytrends.interest_over_time()
+
+    if df.empty:
+        print("[WARN] Trend data payload returned empty container structures.")
+        return
+
+    for kw in keywords:
+        # Rolling baseline vs the most recent velocity points (~3 weeks)
+        historical_avg = df[kw].iloc[:-3].mean()
+        recent_velocity = df[kw].iloc[-3:].mean()
+
+        velocity_ratio = recent_velocity / max(historical_avg, 1)
+
+        print(f"• {kw:<20} -> {keyword_map[kw]:<38} | Hist Avg: {historical_avg:.1f} | Recent: {recent_velocity:.1f} | Velocity: {velocity_ratio:.2f}x")
+
+        if velocity_ratio > VELOCITY_ALERT_THRESHOLD:
+            print(f"  [🔥 SOCIAL ARB ALERT] Consumer divergence on '{kw}' (maps to {keyword_map[kw]})")
+            print(f"  [ACTION] Ground-truth it: crawl reviews/reddit sentiment before any position.")
+
+
 def run_social_arb_scan():
     print(f"[{datetime.now().isoformat()}] [SYSTEM] Launching Social Arbitrage Engine...")
 
-    # Initialize connection to search data engine
     pytrends = TrendReq(hl='en-US', tz=360)
 
-    # Define a high-conviction consumer tracking basket matching thematic catalysts
-    # e.g., tracking clean energy spikes (Bloom Energy) or e.l.f. beauty trends
-    tracking_keywords = ["Bloom Energy", "elf cosmetics", "roof repair"]
+    print("\n=== Real-World Velocity Scorecard ===")
+    for i, batch in enumerate(KEYWORD_BATCHES):
+        if len(batch) > 5:
+            print(f"[ERROR] Batch {i + 1} has {len(batch)} keywords; pytrends max is 5. Skipping.")
+            continue
+        try:
+            scan_batch(pytrends, batch)
+        except Exception as e:
+            print(f"[ERROR] Batch {i + 1} failed (likely Google 429 rate-limit): {str(e)}")
+        if i < len(KEYWORD_BATCHES) - 1:
+            time.sleep(5)  # pause between payloads to dodge rate-limiting
 
-    print(f"[MONITOR] Pulling keyword trend acceleration data for: {tracking_keywords}")
-
-    try:
-        pytrends.build_payload(tracking_keywords, cat=0, timeframe='today 3-m', geo='US', gprop='')
-        interest_over_time_df = pytrends.interest_over_time()
-
-        if interest_over_time_df.empty:
-            print("[WARN] Trend data payload returned empty container structures.")
-            return
-
-        print("\n=== Real-World Velocity Scorecard ===")
-        for kw in tracking_keywords:
-            # Calculate rolling average benchmark vs the most recent velocity points
-            historical_avg = interest_over_time_df[kw].iloc[:-3].mean()
-            recent_velocity = interest_over_time_df[kw].iloc[-3:].mean()
-
-            # Formulate the Information Asymmetry Coefficient
-            velocity_ratio = recent_velocity / max(historical_avg, 1)
-
-            print(f"• Keyword: {kw:<15} | Hist Avg: {historical_avg:.1f} | Recent: {recent_velocity:.1f} | Velocity Ratio: {velocity_ratio:.2f}x")
-
-            # Trigger Alpha Flag if recent consumer interest surges more than 1.5x above baseline
-            if velocity_ratio > 1.50:
-                print(f"  [🔥 SOCIAL ARB ALERT] Massive consumer divergence detected for '{kw}'!")
-                print(f"  [ACTION] Initiate ground-level due diligence matrix (reviews, sentiment shifts).")
-
-    except Exception as e:
-        print(f"[ERROR] Engine timed out or met an interface block: {str(e)}")
 
 if __name__ == "__main__":
     run_social_arb_scan()
