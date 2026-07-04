@@ -41,9 +41,30 @@ KEYWORD_BATCHES = [
         "solar panel installation": "ENPH/RUN/FSLR",
         "Abercrombie": "ANF",
     },
+    # Batch 5: durable macro themes via consumer-intent phrasing
+    {
+        "electric bill too high": "VST/CEG/NRG (grid tightness, real-economy)",
+        "nuclear energy stocks": "CCJ/SMR/OKLO (retail wave detector)",
+        "car insurance too expensive": "PGR/ALL (pricing-power signal)",
+        "humanoid robot": "TSLA/robot supply chain (attention gauge)",
+        "clothes too big": "GLP-1 2nd-order: apparel refresh, BRBR",
+    },
+    # Batch 6: AI / quantum / data-center intent terms
+    {
+        "ChatGPT plus": "MSFT/NVDA proxy (paid-usage velocity)",
+        "Nvidia stock": "NVDA retail FOMO gauge (contrarian at extremes)",
+        "quantum computing stocks": "IONQ/RGTI/QBTS (retail wave detector)",
+        "data center construction": "VRT/ETN/PWR (build-out demand)",
+        "GPU price": "NVDA/AMD (consumer demand)",
+    },
 ]
 
 VELOCITY_ALERT_THRESHOLD = 1.50
+
+# Backoff tuning: Google 429s aggressively on back-to-back payloads.
+INTER_BATCH_SLEEP = 60          # seconds between successful batches
+MAX_RETRIES = 3                 # retries per batch on failure
+BACKOFF_BASE = 90               # 429 backoff: 90s, 180s, 360s
 
 
 def scan_batch(pytrends, keyword_map):
@@ -81,12 +102,20 @@ def run_social_arb_scan():
         if len(batch) > 5:
             print(f"[ERROR] Batch {i + 1} has {len(batch)} keywords; pytrends max is 5. Skipping.")
             continue
-        try:
-            scan_batch(pytrends, batch)
-        except Exception as e:
-            print(f"[ERROR] Batch {i + 1} failed (likely Google 429 rate-limit): {str(e)}")
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                scan_batch(pytrends, batch)
+                break
+            except Exception as e:
+                if attempt == MAX_RETRIES:
+                    print(f"[ERROR] Batch {i + 1} failed after {MAX_RETRIES} attempts: {str(e)}")
+                else:
+                    wait = BACKOFF_BASE * (2 ** (attempt - 1))
+                    print(f"[WARN] Batch {i + 1} attempt {attempt} failed ({str(e)}). Backing off {wait}s...")
+                    time.sleep(wait)
         if i < len(KEYWORD_BATCHES) - 1:
-            time.sleep(5)  # pause between payloads to dodge rate-limiting
+            print(f"[SYSTEM] Sleeping {INTER_BATCH_SLEEP}s before next batch...")
+            time.sleep(INTER_BATCH_SLEEP)
 
 
 if __name__ == "__main__":
