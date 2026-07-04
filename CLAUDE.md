@@ -398,7 +398,10 @@ gives (raw is fine).
 journal, git log, freshness) to **MiniMax M3 (native API)** — a different
 model on purpose, so it doesn't share this desk's blind spots. ADVISORY ONLY:
 it prints CONTRADICTIONS / ROUTINE GAPS / SUGGESTIONS; its suggestions become
-rules only via the Friday loop + user GO, never directly. Needs
+rules only via the Friday loop + user GO, never directly. It KEEPS MEMORY:
+each memo is saved to `journal/audits/<date>.md` and the last 3 are fed back
+into the next run, so it marks flags NEW / REPEAT xN and escalates what
+festers. Needs
 `MINIMAX_API_KEY` in `~/.zshrc` (env var, never in repo; falls back to
 `OPENROUTER_API_KEY` if absent). ~1¢/run.
 MANUAL trigger only — never schedule it (LaunchAgents post-mortem applies).

@@ -27,6 +27,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
+AUDIT_DIR = ROOT / "journal" / "audits"     # the supervisor's own memory
+PRIOR_AUDITS_FED_BACK = 3                    # how many past memos it re-reads
 
 # Provider picked by which key is exported: MiniMax native first, then OpenRouter.
 PROVIDERS = [
@@ -99,6 +101,22 @@ def _system_prompt():
     return raw.strip()
 
 
+def _prior_audits():
+    """Last few memos, oldest first — the supervisor's memory across days."""
+    if not AUDIT_DIR.exists():
+        return "<< no prior audits — this is the first run >>"
+    memos = sorted(AUDIT_DIR.glob("*.md"))[-PRIOR_AUDITS_FED_BACK:]
+    if not memos:
+        return "<< no prior audits — this is the first run >>"
+    chunks = []
+    for m in memos:
+        text = m.read_text(errors="replace")
+        if len(text) > 4000:
+            text = text[:4000] + "\n<< TRUNCATED >>"
+        chunks.append(f"--- {m.name} ---\n{text}")
+    return "\n\n".join(chunks)
+
+
 def build_payload(asof=None):
     now = datetime.now(ZoneInfo("America/New_York"))
     asof = asof or now.date().isoformat()
@@ -111,6 +129,9 @@ def build_payload(asof=None):
         "",
         "=== GIT LOG (last 7 days) ===",
         _git_log(),
+        "",
+        "=== PRIOR AUDITS (your own memory — compare today against these) ===",
+        _prior_audits(),
     ]
     for rel in PAYLOAD_FILES:
         parts += ["", f"=== {rel} ===", _read_capped(rel)]
@@ -154,11 +175,18 @@ def run(asof=None):
     if not body.get("choices"):
         # MiniMax can 200 with an error object (base_resp) instead of choices
         sys.exit(f"API returned no choices: {json.dumps(body)[:500]}")
-    report = body["choices"][0]["message"]["content"]
+    report = body["choices"][0]["message"]["content"].strip()
     usage = body.get("usage", {})
-    print(report.strip())
+    print(report)
     print(f"\n[supervisor: {model} · {usage.get('prompt_tokens', '?')} in / "
           f"{usage.get('completion_tokens', '?')} out]")
+
+    # persist the memo — this IS the second brain. Next run reads it back.
+    AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+    asof_stamp = asof or datetime.now(ZoneInfo("America/New_York")).date().isoformat()
+    memo = AUDIT_DIR / f"{asof_stamp}.md"     # re-run same day = overwrite, latest wins
+    memo.write_text(report + "\n")
+    print(f"[memo saved: {memo.relative_to(ROOT)}]")
 
 
 if __name__ == "__main__":

@@ -31,6 +31,8 @@ The payload you receive contains, verbatim from the repo:
 - Recent git commit log — what actually changed this week.
 - Freshness metadata — when snapshots/screenshots/journal were last touched.
 - TODAY's verified date and weekday (computed by the calling script — trust it).
+- **PRIOR AUDITS — your own past memos** (journal/audits/). This is your
+  memory. You are not starting fresh each day.
 
 ## What to check, in priority order
 
@@ -51,6 +53,13 @@ The payload you receive contains, verbatim from the repo:
    evaluation window, screenshots stale relative to claimed activity.
 5. **Goodhart drift.** Signs of gaming the expectancy metric per goal.yaml's
    guards: shrinking TPs, widening stops, sizing up after wins.
+6. **Follow-through on your own past flags.** Compare today against your
+   prior memos: mark every contradiction/gap as NEW or REPEAT (with a count,
+   e.g. "REPEAT x3 — flagged since 2026-07-06"). A HIGH that repeats
+   unaddressed for 3+ audits gets top billing in the VERDICT. Also note
+   what got RESOLVED since the last memo — closed loops matter as much as
+   open ones. Do not re-litigate items your past memos marked resolved
+   unless the files show them back.
 
 ## Output format (exactly this structure)
 
@@ -59,10 +68,14 @@ SUPERVISOR AUDIT — <date> (<weekday>)
 STATUS: OK | FLAGS RAISED
 
 CONTRADICTIONS            (empty section = "none found")
-  C1. <one sentence> — <file/rule A> vs <file/rule B>. Severity: HIGH/MED/LOW.
+  C1. [NEW | REPEAT xN] <one sentence> — <file/rule A> vs <file/rule B>.
+      Severity: HIGH/MED/LOW.
 
 ROUTINE GAPS
-  G1. <what's missing/stale> — <why it matters>.
+  G1. [NEW | REPEAT xN] <what's missing/stale> — <why it matters>.
+
+RESOLVED SINCE LAST AUDIT (omit section on first run)
+  R1. <what was flagged before and is now fixed>.
 
 SUGGESTIONS               (max 3; each must be testable as a ONE-variable
   S1. <suggestion>         Friday-loop hypothesis — phrase it that way)
