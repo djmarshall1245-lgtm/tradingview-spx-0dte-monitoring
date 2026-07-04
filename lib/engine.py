@@ -25,6 +25,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 STRATEGY_PATH = ROOT / "strategy" / "strategy.yaml"
+GOAL_PATH = ROOT / "strategy" / "goal.yaml"
 JOURNAL_PATH = ROOT / "journal" / "trades.jsonl"
 
 
@@ -35,6 +36,34 @@ def load_strategy() -> dict:
     return yaml.safe_load(STRATEGY_PATH.read_text())
 
 
+def load_goal() -> dict:
+    """Load goal.yaml (funding tranches, rails). Empty dict if absent."""
+    return yaml.safe_load(GOAL_PATH.read_text()) if GOAL_PATH.exists() else {}
+
+
+def funded_daily_cap(strategy: dict, goal: dict | None = None) -> int:
+    """Daily trade cap adjusted for goal.yaml's partial-funding rule.
+
+    While ****3232 is below $2500: 1 trade/day under $1000, 2 at
+    $1000-2499. At $2500+ the strategy.yaml base cap stands. Landed
+    capital = sum of tranches with a numeric usd and a non-TBD date
+    (pending tranches parse as strings and are excluded). RH buying
+    power is the acted-on truth; this guard only refuses to EXCEED
+    what the documented funding justifies — it never raises the base.
+    """
+    base = strategy["risk_controls"]["daily_loss_cap_trades"]
+    goal = load_goal() if goal is None else goal
+    tranches = (goal.get("funding_source") or {}).get("tranches") or []
+    landed = sum(t["usd"] for t in tranches
+                 if isinstance(t.get("usd"), (int, float))
+                 and t.get("date") != "TBD")
+    if landed >= 2500:
+        return base
+    if landed >= 1000:
+        return min(base, 2)
+    return min(base, 1)
+
+
 def load_engine_config(strategy: dict | None = None) -> dict:
     """Return the terminal_engine section + resolved inherited values."""
     strategy = strategy or load_strategy()
@@ -43,7 +72,7 @@ def load_engine_config(strategy: dict | None = None) -> dict:
     # Resolve inherited values from the parent strategy
     eng["_resolved"] = {
         "hard_stop_pct": strategy["exits"]["hard_stop_pct"],
-        "daily_cap": strategy["risk_controls"]["daily_loss_cap_trades"],
+        "daily_cap": funded_daily_cap(strategy),
         "order_type": strategy["execution"]["order_type"],
         "max_positions": strategy["concurrency"]["max_open_positions"],
         "premium_band": strategy["instrument"]["premium_per_contract_usd"],
