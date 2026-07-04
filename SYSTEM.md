@@ -63,6 +63,7 @@ OBSERVE                    DECIDE                      LEARN
 | `prompts/trade_desk.md` | At-signal entry check (4 gates + anti-drift + TOOL RECEIPT) |
 | `prompts/friday_loop.md` | Weekly reflection (one-variable rule, your GO) |
 | `watchlists/leopold_holdings.yaml` | Q1 2026 13F context, smart-money-confirms flag |
+| `prompts/leopold_run.md` | On-demand smart-money sweep of the Leopold book vs live tape |
 
 ## Daily routine (the whole brain in 3 actions)
 
