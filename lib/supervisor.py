@@ -10,8 +10,9 @@ Advisory only: prints a report, writes nothing, trades nothing.
 
 Needs MINIMAX_API_KEY (MiniMax platform, pay-as-you-go) exported in the
 shell (~/.zshrc, same pattern as the Alpaca keys — never in this repo).
-Falls back to OPENROUTER_API_KEY if MiniMax's key is absent. Cost: well
-under 1 cent/run (~7k tokens in, ~1k out at $0.30/M in, $1.20/M out).
+Falls back to OPENROUTER_API_KEY if MiniMax's key is absent. Cost: 1-2
+cents/run (~8k tokens in, up to ~12k out — M3 is a reasoning model and
+spends most of its output budget thinking before the report).
 
 MANUAL TRIGGER ONLY. Never wire this into a LaunchAgent/cron — the
 scheduled-job token burn of 2026-06-16 applies (scratch/post_mortem_launchagents.md).
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -161,7 +163,10 @@ def run(asof=None):
         json={
             "model": model,
             "temperature": 0.2,
-            "max_tokens": 3000,
+            # M3 is a REASONING model: it thinks in a visible <think> block
+            # before writing. 3000 hit the cap mid-thought and produced no
+            # report (observed first live run, Sat 2026-07-04) — leave room.
+            "max_tokens": 12000,
             "messages": [
                 {"role": "system", "content": _system_prompt()},
                 {"role": "user", "content": payload},
@@ -175,7 +180,21 @@ def run(asof=None):
     if not body.get("choices"):
         # MiniMax can 200 with an error object (base_resp) instead of choices
         sys.exit(f"API returned no choices: {json.dumps(body)[:500]}")
-    report = body["choices"][0]["message"]["content"].strip()
+    raw = body["choices"][0]["message"]["content"].strip()
+    # Strip the reasoning scratchwork — the memo keeps only the report.
+    # An UNCLOSED <think> means output was truncated mid-thought: no report.
+    if raw.startswith("<think>") and "</think>" not in raw:
+        report = ""
+    else:
+        report = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    if not report:
+        finish = body["choices"][0].get("finish_reason", "?")
+        sys.exit(
+            f"Model produced only <think> scratchwork and no report "
+            f"(finish_reason={finish}) — likely hit max_tokens mid-thought. "
+            "Re-run; if it repeats, raise max_tokens in lib/supervisor.py. "
+            "No memo saved."
+        )
     usage = body.get("usage", {})
     print(report)
     print(f"\n[supervisor: {model} · {usage.get('prompt_tokens', '?')} in / "
