@@ -8,9 +8,10 @@ Advisory only: prints a report, writes nothing, trades nothing.
   python run.py --supervise            # audit as of today
   python run.py --supervise --asof 2026-07-02
 
-Needs OPENROUTER_API_KEY exported in the shell (~/.zshrc, same pattern as
-the Alpaca keys — never in this repo). Cost: ~1 cent/run at M3 pricing
-($0.30/M in, $1.20/M out; ~20-30k tokens in, ~1k out).
+Needs MINIMAX_API_KEY (MiniMax platform, pay-as-you-go) exported in the
+shell (~/.zshrc, same pattern as the Alpaca keys — never in this repo).
+Falls back to OPENROUTER_API_KEY if MiniMax's key is absent. Cost: well
+under 1 cent/run (~7k tokens in, ~1k out at $0.30/M in, $1.20/M out).
 
 MANUAL TRIGGER ONLY. Never wire this into a LaunchAgent/cron — the
 scheduled-job token burn of 2026-06-16 applies (scratch/post_mortem_launchagents.md).
@@ -27,8 +28,11 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MODEL = "minimax/minimax-m3"
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
+# Provider picked by which key is exported: MiniMax native first, then OpenRouter.
+PROVIDERS = [
+    ("MINIMAX_API_KEY", "https://api.minimax.io/v1/chat/completions", "MiniMax-M3"),
+    ("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions", "minimax/minimax-m3"),
+]
 PER_FILE_CHAR_CAP = 15_000          # keeps the payload (and cost) bounded
 
 PAYLOAD_FILES = [
@@ -114,23 +118,27 @@ def build_payload(asof=None):
 
 
 def run(asof=None):
-    key = os.environ.get("OPENROUTER_API_KEY")
+    key = url = model = None
+    for env_name, provider_url, provider_model in PROVIDERS:
+        if os.environ.get(env_name):
+            key, url, model = os.environ[env_name], provider_url, provider_model
+            break
     if not key:
         sys.exit(
-            "OPENROUTER_API_KEY is not set. Add it to ~/.zshrc (same pattern "
+            "MINIMAX_API_KEY is not set. Add it to ~/.zshrc (same pattern "
             "as the Alpaca keys):\n"
-            '  read -s "k?OpenRouter key: " && echo && '
-            "printf '\\nexport OPENROUTER_API_KEY=%s\\n' \"$k\" >> ~/.zshrc "
+            '  read -s "k?MiniMax key: " && echo && '
+            "printf '\\nexport MINIMAX_API_KEY=%s\\n' \"$k\" >> ~/.zshrc "
             "&& unset k && source ~/.zshrc"
         )
 
     payload = build_payload(asof)
     import requests
     resp = requests.post(
-        API_URL,
+        url,
         headers={"Authorization": f"Bearer {key}"},
         json={
-            "model": MODEL,
+            "model": model,
             "temperature": 0.2,
             "max_tokens": 3000,
             "messages": [
@@ -141,12 +149,15 @@ def run(asof=None):
         timeout=180,
     )
     if resp.status_code != 200:
-        sys.exit(f"OpenRouter error {resp.status_code}: {resp.text[:500]}")
+        sys.exit(f"API error {resp.status_code} from {url}: {resp.text[:500]}")
     body = resp.json()
+    if not body.get("choices"):
+        # MiniMax can 200 with an error object (base_resp) instead of choices
+        sys.exit(f"API returned no choices: {json.dumps(body)[:500]}")
     report = body["choices"][0]["message"]["content"]
     usage = body.get("usage", {})
     print(report.strip())
-    print(f"\n[supervisor: {MODEL} · {usage.get('prompt_tokens', '?')} in / "
+    print(f"\n[supervisor: {model} · {usage.get('prompt_tokens', '?')} in / "
           f"{usage.get('completion_tokens', '?')} out]")
 
 
