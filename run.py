@@ -5,6 +5,7 @@ trades. Run on your Mac (needs network for live data).
   python run.py --brief                 # full daily monitor (macro+book+alerts+news)
   python run.py --snapshot              # just snapshot chains (daily IV-history ramp)
   python run.py --score                 # expectancy report from journal/trades.jsonl
+  python run.py --supervise             # end-of-day contradiction audit (MiniMax M3, advisory)
   python run.py --shot chart            # screenshot a named region (see config.yaml)
   python run.py --shot --window         # click a window to capture
   python run.py --asof 2026-06-22 ...   # stamp a specific run date
@@ -28,6 +29,11 @@ def _load_yaml(name):
 def cmd_score():
     from lib import score
     score.report()
+
+
+def cmd_supervise(asof):
+    from lib import supervisor
+    supervisor.run(asof)
 
 
 def cmd_shot(args):
@@ -141,6 +147,8 @@ def main():
     ap.add_argument("--brief", action="store_true")
     ap.add_argument("--snapshot", action="store_true")
     ap.add_argument("--score", action="store_true")
+    ap.add_argument("--supervise", action="store_true",
+                    help="end-of-day contradiction audit via MiniMax M3 (advisory only)")
     ap.add_argument("--shot", nargs="?", const="", help="named region, or use --window/--full")
     ap.add_argument("--window", action="store_true")
     ap.add_argument("--full", action="store_true")
@@ -154,6 +162,8 @@ def main():
         cmd_snapshot(args.asof); ran = True
     if args.score:
         cmd_score(); ran = True
+    if args.supervise:
+        cmd_supervise(args.asof); ran = True
     if args.brief:
         cmd_brief(args.asof); ran = True
     if not ran:

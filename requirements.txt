@@ -5,4 +5,5 @@ yfinance>=0.2.40
 pyyaml>=6.0
 certifi>=2024.0.0   # SSL CA bundle (transitive via yfinance; explicit here)
 tastytrade>=10.0    # official SDK: OAuth + auto-refresh + get_market_metrics
+requests>=2.0       # supervisor audit (OpenRouter API); already transitive via yfinance
 # Greeks, score, db, screenshot, alerts use only the Python standard library.

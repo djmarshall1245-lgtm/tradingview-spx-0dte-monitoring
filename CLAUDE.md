@@ -392,6 +392,17 @@ gives (raw is fine).
 - Servers showing `needs authentication` (robinhood, gmail, calendar, drive)
   are harmless if unused — authenticate them only when you actually need them.
 
+## Supervisor audit (second-model contradiction check)
+
+`python3 run.py --supervise` sends the day-state (strategy, goal, positions,
+journal, git log, freshness) to **MiniMax M3 via OpenRouter** — a different
+model on purpose, so it doesn't share this desk's blind spots. ADVISORY ONLY:
+it prints CONTRADICTIONS / ROUTINE GAPS / SUGGESTIONS; its suggestions become
+rules only via the Friday loop + user GO, never directly. Needs
+`OPENROUTER_API_KEY` in `~/.zshrc` (env var, never in repo). ~1¢/run.
+MANUAL trigger only — never schedule it (LaunchAgents post-mortem applies).
+Charter prompt: `prompts/supervisor.md`. Code: `lib/supervisor.py`.
+
 ## Automation inventory — scheduled jobs (FIXED, do not re-enable)
 
 Scheduled LaunchAgents (`spx.briefing` + `lotteryscanner`) were permanently
