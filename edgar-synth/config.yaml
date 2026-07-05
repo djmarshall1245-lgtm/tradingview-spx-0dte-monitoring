@@ -1,0 +1,57 @@
+# edgar-synth config
+# EDIT sec_user_agent BEFORE RUNNING — SEC requires a declared identity or you get blocked.
+
+sec_user_agent: "Andre Reynolds djmarshall1245@gmail.com"
+
+# --- Phase 1: watcher ---
+poll_interval_sec: 2          # getcurrent feed poll cadence (SEC cap is 10 req/s total; we stay far under)
+feed_count: 100               # entries per poll
+target_forms: ["8-K", "8-K/A", "SC 13D", "SC 13D/A", "S-3", "424B5", "SC TO-T", "SC 14D9"]
+# forms scored higher by the rules pass (pre-LLM)
+priority_forms: ["SC 13D", "SC 13D/A", "8-K", "SC TO-T"]
+
+# operating window, ET (EDGAR accepts 6am-10pm ET weekdays)
+window_start: "06:00"
+window_end: "22:00"
+timezone: "America/New_York"
+
+# --- Universe (refreshed daily from FMP screener) ---
+universe:
+  market_cap_min: 100000000     # $100M — below this, liquidity is untradeable
+  market_cap_max: 2000000000    # $2B — the under-covered zone
+  volume_min: 200000
+  country: "US"
+  limit: 3000
+  refresh_hours: 24
+
+# --- Phase 2: triage / LLM ---
+llm:
+  provider: "openai_compatible"   # "openai_compatible" (MiniMax M3 etc.) or "anthropic"
+  base_url: "https://api.minimax.io/v1"  # MiniMax native (same endpoint as supervisor)
+  model: "MiniMax-M3"                    # for anthropic use e.g. "claude-haiku-4-5"
+  api_key_env: "MINIMAX_API_KEY"         # already exported in ~/.zshrc
+  max_doc_chars: 12000                   # filing text cap sent to model
+  timeout_sec: 45
+
+min_conviction_for_enrich: 5    # only spend UW/FMP calls on filings the LLM rates >= this
+
+# --- Phase 3: synthesis weights ---
+synthesis:
+  w_conviction: 0.5
+  w_short: 0.3
+  w_flow: 0.2
+
+# --- Phase 4: alerts + paper log ---
+alert_score_min: 60             # compound score 0-100
+alert_conviction_min: 7
+alerts:
+  macos_notification: true
+  ntfy_topic: ""                # set e.g. "andre-edgar-x7k2" and subscribe in the ntfy app for phone push
+
+db_path: "signals.db"
+heartbeat_path: "heartbeat"
+
+# --- Secrets (not stored here) ---
+# FMP_API_KEY        env var
+# UW credentials     ~/.uw_credentials  (UW_TOKEN=... or raw token line)
+# LLM key            env var named by llm.api_key_env
