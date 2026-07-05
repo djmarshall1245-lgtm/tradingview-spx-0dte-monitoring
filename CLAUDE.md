@@ -407,6 +407,23 @@ festers. Needs
 MANUAL trigger only — never schedule it (LaunchAgents post-mortem applies).
 Charter prompt: `prompts/supervisor.md`. Code: `lib/supervisor.py`.
 
+## edgar-synth (Mac-local sidecar — EDGAR filing watcher)
+
+Separate system living at `~/edgar-synth` on the Mac (built 2026-07-05).
+Watches SEC EDGAR's live filing feed, triages filings via **MiniMax M3**
+(same `MINIMAX_API_KEY` as the supervisor), fills quotes via `FMP_API_KEY`
+(env var in `~/.zshrc`, never in repo). **PAPER-ONLY: alerts + a SQLite
+paper log — zero execution path.** Manual runs only (`python3 run.py --once`
+from `~/edgar-synth`) — never schedule it; the LaunchAgents post-mortem
+applies to it exactly like everything else.
+
+The supervisor audit peeks at it automatically: its `config.yaml` and
+paper-log freshness ride along in the nightly payload ("NOT INSTALLED" on
+non-Mac machines is normal). A versioned snapshot of its code lives in this
+repo under `edgar-synth/` (runtime .db/.log files are gitignored) — re-sync
+from the Mac with rsync + commit when the code changes. The live install
+stays `~/edgar-synth`; the repo copy is the backup.
+
 ## Automation inventory — scheduled jobs (FIXED, do not re-enable)
 
 Scheduled LaunchAgents (`spx.briefing` + `lotteryscanner`) were permanently

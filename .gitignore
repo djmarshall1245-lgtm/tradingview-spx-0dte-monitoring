@@ -22,3 +22,9 @@ __pycache__/
 # Run artifacts
 *.log
 payload.json
+
+# edgar-synth repo snapshot — code only, no runtime artifacts
+edgar-synth/*.db
+edgar-synth/*.sqlite*
+edgar-synth/data/*.db
+edgar-synth/data/*.sqlite*

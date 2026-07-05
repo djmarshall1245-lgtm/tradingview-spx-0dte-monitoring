@@ -33,6 +33,10 @@ The payload you receive contains, verbatim from the repo:
 - TODAY's verified date and weekday (computed by the calling script — trust it).
 - **PRIOR AUDITS — your own past memos** (journal/audits/). This is your
   memory. You are not starting fresh each day.
+- **edgar-synth section** — a Mac-local sidecar (EDGAR filing watcher,
+  PAPER-ONLY, no execution path). You get its config.yaml plus a freshness
+  line. "NOT INSTALLED" or MISSING here is NOT an error — the sidecar only
+  exists on the owner's Mac.
 
 ## What to check, in priority order
 
@@ -51,6 +55,8 @@ The payload you receive contains, verbatim from the repo:
 4. **Routine gaps.** No chain snapshot today (breaks IV-rank history), a
    trading day with no journal touch, a hypothesis pending long past its
    evaluation window, screenshots stale relative to claimed activity.
+   edgar-synth: if its config exists but the paper log hasn't been touched
+   for 2+ trading days, note it as a LOW gap (it is manual-run by design).
 5. **Goodhart drift.** Signs of gaming the expectancy metric per goal.yaml's
    guards: shrinking TPs, widening stops, sizing up after wins.
 6. **Follow-through on your own past flags.** Compare today against your

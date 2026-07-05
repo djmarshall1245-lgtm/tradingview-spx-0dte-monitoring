@@ -31,6 +31,10 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parent.parent
 AUDIT_DIR = ROOT / "journal" / "audits"     # the supervisor's own memory
 PRIOR_AUDITS_FED_BACK = 3                    # how many past memos it re-reads
+# Mac-local sidecar: EDGAR filing watcher (paper-only, no execution). Lives
+# OUTSIDE the repo; the supervisor runs on the Mac so it can peek at it.
+# Absent (e.g. cloud sessions) => clean NOT INSTALLED markers, not an error.
+EDGAR_ROOT = Path.home() / "edgar-synth"
 
 # Provider picked by which key is exported: MiniMax native first, then OpenRouter.
 PROVIDERS = [
@@ -50,12 +54,15 @@ PAYLOAD_FILES = [
 
 
 def _read_capped(rel):
-    p = ROOT / rel
+    return _read_capped_abs(ROOT / rel, rel)
+
+
+def _read_capped_abs(p, label):
     if not p.exists():
-        return f"<< {rel}: MISSING >>"
+        return f"<< {label}: MISSING >>"
     text = p.read_text(errors="replace")
     if not text.strip():
-        return f"<< {rel}: EXISTS BUT EMPTY >>"
+        return f"<< {label}: EXISTS BUT EMPTY >>"
     if len(text) > PER_FILE_CHAR_CAP:
         return text[:PER_FILE_CHAR_CAP] + f"\n<< TRUNCATED at {PER_FILE_CHAR_CAP} chars >>"
     return text
@@ -90,7 +97,24 @@ def _freshness():
         stamp = datetime.fromtimestamp(newest.stat().st_mtime).strftime("%a %Y-%m-%d %H:%M")
         lines.append(f"- {label}: newest = {newest.name}, modified {stamp} "
                      f"({len(paths)} file(s))")
+    lines.append(_edgar_freshness())
     return "\n".join(lines)
+
+
+def _edgar_freshness():
+    """One line on the edgar-synth sidecar's activity (paper log mtime)."""
+    if not EDGAR_ROOT.exists():
+        return "- edgar-synth sidecar: NOT INSTALLED on this machine (ok)"
+    hits = []
+    for pattern in ("*.db", "*.sqlite*", "*.jsonl", "*.log"):
+        hits += EDGAR_ROOT.glob(pattern)
+        hits += EDGAR_ROOT.glob(f"data/{pattern}")
+    if not hits:
+        return "- edgar-synth sidecar: installed, but NO paper-log/db files yet"
+    newest = max(hits, key=lambda p: p.stat().st_mtime)
+    stamp = datetime.fromtimestamp(newest.stat().st_mtime).strftime("%a %Y-%m-%d %H:%M")
+    return (f"- edgar-synth sidecar (paper-only): newest artifact = "
+            f"{newest.name}, modified {stamp}")
 
 
 def _system_prompt():
@@ -137,6 +161,11 @@ def build_payload(asof=None):
     ]
     for rel in PAYLOAD_FILES:
         parts += ["", f"=== {rel} ===", _read_capped(rel)]
+    parts += [
+        "",
+        "=== edgar-synth (Mac-local sidecar — paper-only, no execution) ===",
+        _read_capped_abs(EDGAR_ROOT / "config.yaml", "~/edgar-synth/config.yaml"),
+    ]
     return "\n".join(parts)
 
 
