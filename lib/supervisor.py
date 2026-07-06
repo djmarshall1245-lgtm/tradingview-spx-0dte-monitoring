@@ -52,6 +52,13 @@ PAYLOAD_FILES = [
     "journal/hypotheses.jsonl",
 ]
 
+# Rule-enforcement functions whose SOURCE rides along in the payload, so the
+# auditor can verify a GO'd guard actually landed in code (it flagged the
+# funded_daily_cap fix as missing on 2026-07-06 because it only saw the git
+# log). When a new guard lands in lib/engine.py, add its name here in the
+# SAME commit.
+EVIDENCE_FUNCS = ["funded_daily_cap", "load_goal"]
+
 
 def _read_capped(rel):
     return _read_capped_abs(ROOT / rel, rel)
@@ -117,6 +124,34 @@ def _edgar_freshness():
             f"{newest.name}, modified {stamp}")
 
 
+def _code_evidence():
+    """Outline of lib/engine.py + full source of the EVIDENCE_FUNCS.
+
+    Whole-file inclusion would blow the per-file cap (engine.py is ~21k
+    chars) and bury the audit in poll-loop code; this keeps just enough
+    for the auditor to confirm the guards exist.
+    """
+    path = ROOT / "lib" / "engine.py"
+    if not path.exists():
+        return "<< lib/engine.py: MISSING >>"
+    lines = path.read_text(errors="replace").splitlines()
+    outline = [l for l in lines if l.startswith(("def ", "class "))]
+    chunks = ["-- outline (top-level defs) --"] + outline
+    for name in EVIDENCE_FUNCS:
+        body, grabbing = [], False
+        for l in lines:
+            if l.startswith(f"def {name}("):
+                grabbing = True
+            elif grabbing and l and not l[0].isspace() and not l.startswith(")"):
+                break                      # next top-level statement ends it
+            if grabbing:
+                body.append(l)
+        chunks.append(f"\n-- {name}() --")
+        chunks.append("\n".join(body).rstrip() if body
+                      else f"<< {name}: NOT FOUND in lib/engine.py >>")
+    return "\n".join(chunks)
+
+
 def _system_prompt():
     raw = (ROOT / "prompts" / "supervisor.md").read_text()
     # strip the yaml frontmatter block; the charter below it is the prompt
@@ -162,6 +197,9 @@ def build_payload(asof=None):
     for rel in PAYLOAD_FILES:
         parts += ["", f"=== {rel} ===", _read_capped(rel)]
     parts += [
+        "",
+        "=== ENFORCEMENT EVIDENCE (lib/engine.py — code the rules live in) ===",
+        _code_evidence(),
         "",
         "=== edgar-synth (Mac-local sidecar — paper-only, no execution) ===",
         _read_capped_abs(EDGAR_ROOT / "config.yaml", "~/edgar-synth/config.yaml"),
