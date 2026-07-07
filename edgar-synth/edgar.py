@@ -34,13 +34,14 @@ class Throttle:
 
 
 class EdgarWatcher:
-    def __init__(self, user_agent, target_forms, feed_count=100):
+    def __init__(self, user_agent, target_forms, feed_count=100, feed_timeout=30):
         if "CHANGE_ME" in user_agent:
             raise SystemExit("Set sec_user_agent in config.yaml (SEC requires a declared identity).")
         self.session = requests.Session()
         self.session.headers["User-Agent"] = user_agent
         self.target_forms = set(target_forms)
         self.feed_count = feed_count
+        self.feed_timeout = feed_timeout
         self.throttle = Throttle()
         self.seen = set()          # accession numbers
         self._first_poll = True
@@ -64,7 +65,7 @@ class EdgarWatcher:
         }
         self.throttle.wait()
         try:
-            r = self.session.get(FEED_URL, params=params, timeout=15)
+            r = self.session.get(FEED_URL, params=params, timeout=self.feed_timeout)
             r.raise_for_status()
         except requests.RequestException as e:
             log.warning("feed poll failed: %s", e)
@@ -120,7 +121,7 @@ class EdgarWatcher:
         base = f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}"
         self.throttle.wait()
         try:
-            r = self.session.get(f"{base}/index.json", timeout=15)
+            r = self.session.get(f"{base}/index.json", timeout=self.feed_timeout)
             r.raise_for_status()
             items = r.json().get("directory", {}).get("item", [])
         except (requests.RequestException, json.JSONDecodeError) as e:
@@ -131,7 +132,7 @@ class EdgarWatcher:
             return ""
         self.throttle.wait()
         try:
-            r = self.session.get(f"{base}/{name}", timeout=20)
+            r = self.session.get(f"{base}/{name}", timeout=self.feed_timeout)
             r.raise_for_status()
         except requests.RequestException as e:
             log.warning("doc fetch failed %s/%s: %s", acc, name, e)

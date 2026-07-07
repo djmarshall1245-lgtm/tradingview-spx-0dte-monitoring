@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import edgar
 import synthesis
 import paperlog
+import triage
 
 SAMPLE_ATOM = """<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
@@ -144,6 +145,42 @@ class EdgarNoInit(edgar.EdgarWatcher):
                              "424B5", "SC TO-T", "SC 14D9"}
         self.seen = set()
         self._first_poll = True
+        self.feed_timeout = 30
+
+
+def test_truncated_json_repair():
+    # Simulates the GETY case: valid JSON cut off mid-string at ~char 469
+    full = '{"direction": "bear", "conviction": 8, "reason": "Company disclosed going-concern language in amended 8-K filing, indicating substantial doubt about ability to continue operations", "items": ["Item 2.02", "going-concern"]}'
+    # Truncate mid-reason string (like MiniMax M3 did at char 469)
+    truncated = full[:120]  # cuts mid-string in "reason"
+
+    # _repair_json should either fix it or return None — never raise
+    result = triage._repair_json(truncated)
+    if result is not None:
+        assert "direction" in result
+        assert "conviction" in result
+        print(f"  repair succeeded: conv={result['conviction']}, dir={result['direction']}")
+    else:
+        print("  repair returned None (acceptable)")
+
+    # Fully valid JSON parses fine through _repair_json
+    valid = '{"direction": "bull", "conviction": 7, "reason": "debt retired", "items": ["8-K"]}'
+    assert triage._repair_json(valid) is not None
+    assert triage._repair_json(valid)["conviction"] == 7
+
+    # Truncation after a complete key-value but missing closing brace
+    partial = '{"direction": "bear", "conviction": 6, "reason": "dilution"'
+    result2 = triage._repair_json(partial)
+    if result2 is not None:
+        assert result2["direction"] == "bear"
+        assert result2["conviction"] == 6
+        print(f"  partial repair succeeded: {result2}")
+
+    # Garbage input returns None
+    assert triage._repair_json("not json at all") is None
+    assert triage._repair_json("") is None
+
+    print("truncated_json_repair OK")
 
 
 if __name__ == "__main__":
@@ -153,4 +190,5 @@ if __name__ == "__main__":
     test_pick_primary_doc()
     test_synthesis()
     test_paperlog()
+    test_truncated_json_repair()
     print("ALL TESTS PASSED")

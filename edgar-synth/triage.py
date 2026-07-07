@@ -26,6 +26,36 @@ SYSTEM = (
 )
 
 
+def _repair_json(raw):
+    """Attempt to parse truncated JSON from LLM output. Returns dict or None."""
+    text = _strip_fences(raw)
+    # Strategy 1: find the last complete {...} substring
+    # Walk backward to find a closing brace and try parsing from the first {
+    start = text.find("{")
+    if start == -1:
+        return None
+    # Try the full text first (maybe just needs fence stripping)
+    try:
+        return json.loads(text[start:])
+    except json.JSONDecodeError:
+        pass
+    # Strategy 2: truncate at the last '}' and try
+    last_brace = text.rfind("}")
+    if last_brace > start:
+        try:
+            return json.loads(text[start:last_brace + 1])
+        except json.JSONDecodeError:
+            pass
+    # Strategy 3: close unterminated strings/objects
+    fragment = text[start:]
+    for suffix in ['"}', '"}]', '"]}', '", "items": []}', '"]}']:
+        try:
+            return json.loads(fragment + suffix)
+        except json.JSONDecodeError:
+            pass
+    return None
+
+
 def classify(cfg, entry, ticker, doc_text):
     """cfg = config['llm']. Returns verdict dict; conviction 0 on failure."""
     fallback = {"direction": "neutral", "conviction": 0, "reason": "llm_error", "items": []}
@@ -45,6 +75,33 @@ def classify(cfg, entry, ticker, doc_text):
         verdict.setdefault("reason", "")
         verdict.setdefault("items", [])
         return verdict
+    except json.JSONDecodeError as e:
+        log.warning("JSON decode failed %s: %s — attempting repair", entry["accession"], e)
+        # Layer 1: try to repair the truncated JSON
+        repaired = _repair_json(raw)
+        if repaired is not None:
+            log.warning("JSON repair succeeded for %s", entry["accession"])
+            repaired["conviction"] = max(0, min(10, int(repaired.get("conviction", 0))))
+            if repaired.get("direction") not in ("bull", "bear", "neutral"):
+                repaired["direction"] = "neutral"
+            repaired.setdefault("reason", "")
+            repaired.setdefault("items", [])
+            return repaired
+        # Layer 2: one LLM retry with nudge
+        log.warning("JSON repair failed for %s, retrying LLM", entry["accession"])
+        try:
+            retry_msg = user_msg + "\n\nIMPORTANT: Return ONLY valid JSON. No truncation."
+            raw2 = _call(cfg, retry_msg)
+            verdict2 = json.loads(_strip_fences(raw2))
+            verdict2["conviction"] = max(0, min(10, int(verdict2.get("conviction", 0))))
+            if verdict2.get("direction") not in ("bull", "bear", "neutral"):
+                verdict2["direction"] = "neutral"
+            verdict2.setdefault("reason", "")
+            verdict2.setdefault("items", [])
+            return verdict2
+        except Exception as e2:  # noqa: BLE001
+            log.warning("LLM retry also failed for %s: %s", entry["accession"], e2)
+            return fallback
     except Exception as e:  # noqa: BLE001 - any triage failure -> neutral, keep loop alive
         log.warning("classify failed %s: %s", entry["accession"], e)
         return fallback

@@ -4,7 +4,8 @@
 sec_user_agent: "Andre Reynolds djmarshall1245@gmail.com"
 
 # --- Phase 1: watcher ---
-poll_interval_sec: 2          # getcurrent feed poll cadence (SEC cap is 10 req/s total; we stay far under)
+poll_interval_sec: 5          # getcurrent feed poll cadence (SEC cap is 10 req/s total; we stay far under)
+feed_timeout_sec: 30          # timeout for SEC feed + document requests (raised from 15 to reduce read timeouts)
 feed_count: 100               # entries per poll
 target_forms: ["8-K", "8-K/A", "SC 13D", "SC 13D/A", "S-3", "424B5", "SC TO-T", "SC 14D9"]
 # forms scored higher by the rules pass (pre-LLM)

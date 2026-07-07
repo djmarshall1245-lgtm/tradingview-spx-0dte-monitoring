@@ -84,7 +84,8 @@ def main():
         return
 
     watcher = edgar.EdgarWatcher(cfg["sec_user_agent"], cfg["target_forms"],
-                                 cfg["feed_count"])
+                                 cfg["feed_count"],
+                                 cfg.get("feed_timeout_sec", 30))
     universe = enrich.load_universe(cfg)
     cik_map = watcher.load_cik_map()
     uw = enrich.UWClient()
