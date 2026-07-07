@@ -3,7 +3,7 @@
 # "learned". Versioned; every prior version snapshots to history/.
 # Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
 
-version: "02.2"
+version: "02.1"
 based_on_goal: strategy/goal.yaml
 
 instrument:
@@ -17,17 +17,7 @@ instrument:
     min_option_volume: high               # active chain, not a ghost town
     max_spread: tight                     # penny-to-nickel wide near ATM
     min_underlying_price_usd: 5           # no sub-$5 lottery shells (e.g. ORBS $0.71)
-  premium_per_contract_usd:                # [v02.2, user GO 2026-07-06, supervisor S1]
-    # Funding-aware band: keyed to the LANDED balance in ****3232 at time of
-    # trade, so one contract stays near per_trade_risk_target_pct (5%).
-    # Fixes C1: old flat [1.50, 2.50] band = 19-31% of a $794 account.
-    by_account_balance:
-      - below_usd: 1000
-        band: [0.40, 0.80]
-      - between_usd: [1000, 2500]
-        band: [1.00, 1.50]
-      - at_or_above_usd: 2500
-        band: [1.50, 2.50]                 # original v02 band, resumes at $2.5k
+  premium_per_contract_usd: [1.50, 2.50]   # sized for $2.5k (scale_up_plan tier)
 
 direction:
   allow_long: true
@@ -252,10 +242,8 @@ terminal_engine:
     daily_cap: risk_controls.daily_loss_cap_trades  # currently 2
     order_type: execution.order_type           # limit_only
     max_positions: concurrency.max_open_positions   # currently 2
-    premium_band: instrument.premium_per_contract_usd  # funding-aware tiers (v02.2)
+    premium_band: instrument.premium_per_contract_usd  # [1.50, 2.50]
 
 scale_up_plan:
-  - "account <  1000 -> premium band [0.40, 0.80]   # ACTIVE (v02.2, $794 landed)"
-  - "account >= 1000 -> premium band [1.00, 1.50]"
-  - "account >= 2500 -> premium band [1.50, 2.50]"
+  - "account >= 2500 -> premium band [1.50, 2.50]   # ACTIVE (v02)"
   - "account >= 5000 -> premium band [3.00, 5.00]"
