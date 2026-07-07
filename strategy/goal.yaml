@@ -26,6 +26,13 @@ funding_source:
     While ****3232 is BELOW $2500, apply v01 partial-funding logic:
     one trade per day if under $1000; two trades per day if $1000-2499.
     At $2500+, this rule is fully inactive.
+  # [supervisor S2, user GO 2026-07-06] The ~07-13 go-live decision is a
+  # checklist, not a memory test. ALL four must be true (owner flips them).
+  live_activation_checklist:
+    tender_cleared: false            # Kuva tender closed + threshold met (expires Fri 2026-07-10)
+    tranche2_landed_usd: 0           # actual $ landed in ****3232 (target ~1706)
+    account_above_floor_usd: false   # balance >= account_floor_usd (1000)
+    guard_verified_in_runpy: false   # funded_daily_cap cap seen live in brief/journal output (S3)
 account:
   broker: robinhood
   subaccount: "****3232"

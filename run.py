@@ -59,6 +59,25 @@ def cmd_snapshot(asof):
     print(f"snapshotted {len(res['snapshots'])} names as of {res['asof']}")
 
 
+def _log_session_start(now, asof, cap):
+    """Append a session_start event to trades.jsonl (once per asof date)."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).resolve().parent / "journal" / "trades.jsonl"
+    if path.exists():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if row.get("event") == "session_start" and row.get("asof") == asof:
+                return  # already logged today — don't spam on brief re-runs
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps({"event": "session_start", "asof": asof,
+                            "ts": now.isoformat(), "today_cap": cap}) + "\n")
+
+
 def cmd_brief(asof):
     cfg = _load_yaml("config.yaml")
     positions = _load_yaml("positions.yaml").get("positions", [])
@@ -71,7 +90,18 @@ def cmd_brief(asof):
     now = datetime.now(ZoneInfo("America/New_York"))
     print(f"=== MORNING BRIEF — {asof} (OBSERVE only, no trades) ===")
     print(f"    NOW: {now:%A %Y-%m-%d  %H:%M:%S %Z}  "
-          f"(entry window 9:45-2:30 ET)\n")
+          f"(entry window 9:45-2:30 ET)")
+
+    # [supervisor S3, user GO 2026-07-06] Make funded_daily_cap observable:
+    # print it in the header and log a session_start event to trades.jsonl
+    # (score.py ignores rows without ts_exit/pnl_usd). Audit in 30 seconds.
+    try:
+        from lib import engine
+        cap = engine.funded_daily_cap(engine.load_strategy())
+        print(f"    today_cap: {cap}  (funded_daily_cap — partial-funding rule)\n")
+        _log_session_start(now, asof, cap)
+    except Exception as e:
+        print(f"    today_cap: UNAVAILABLE ({e})\n")
 
     # 0) overnight tells — pre-open global tape
     try:
