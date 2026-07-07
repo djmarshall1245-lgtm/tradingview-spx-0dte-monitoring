@@ -126,14 +126,9 @@ class EdgarWatcher:
         except (requests.RequestException, json.JSONDecodeError) as e:
             log.warning("index fetch failed %s: %s", acc, e)
             return ""
-        # primary doc heuristic: largest .htm that isn't an index/exhibit-list page
-        docs = [i for i in items
-                if i.get("name", "").lower().endswith((".htm", ".html", ".txt"))
-                and "index" not in i.get("name", "").lower()]
-        if not docs:
+        name = pick_primary_doc(items)
+        if not name:
             return ""
-        docs.sort(key=lambda i: int(i.get("size") or 0), reverse=True)
-        name = docs[0]["name"]
         self.throttle.wait()
         try:
             r = self.session.get(f"{base}/{name}", timeout=20)
@@ -142,6 +137,32 @@ class EdgarWatcher:
             log.warning("doc fetch failed %s/%s: %s", acc, name, e)
             return ""
         return strip_html(r.text)[:max_chars]
+
+
+def pick_primary_doc(items):
+    """Pick the filed primary document from an index.json item list.
+
+    Heuristic: largest .htm/.html/.txt that is NOT an EDGAR-generated
+    artifact. Crucially skips R<n>.htm — the XBRL viewer's rendered
+    reports (R1.htm = cover page). Picking those sent the triage LLM
+    cover-page metadata instead of the 8-K body (EMPD/PNNT, 2026-07-06).
+    Returns the file name, or None.
+    """
+    docs = []
+    for i in items:
+        name = i.get("name", "")
+        low = name.lower()
+        if not low.endswith((".htm", ".html", ".txt")):
+            continue
+        if "index" in low:                      # -index.html, index-headers
+            continue
+        if re.fullmatch(r"r\d+\.htm", low):     # XBRL viewer renderings
+            continue
+        docs.append(i)
+    if not docs:
+        return None
+    docs.sort(key=lambda i: int(i.get("size") or 0), reverse=True)
+    return docs[0]["name"]
 
 
 def strip_html(raw):

@@ -66,6 +66,44 @@ def test_strip_html():
     print("strip_html OK")
 
 
+def test_pick_primary_doc():
+    # Real directory listings from 2026-07-06 filings that triaged blind:
+    # the largest .htm is EDGAR's XBRL-viewer cover-page rendering (R1.htm),
+    # NOT the filed 8-K. pick_primary_doc must skip viewer artifacts.
+    empd = [  # 0001683168-26-005307 (EMPD)
+        {"name": "R1.htm", "size": "41338"},
+        {"name": "MetaLinks.json", "size": "39129"},
+        {"name": "empery_8k.htm", "size": "34767"},
+        {"name": "empd-20260706_lab.xml", "size": "34239"},
+        {"name": "0001683168-26-005307-xbrl.zip", "size": "18668"},
+        {"name": "empery_ex0401.htm", "size": "16204"},
+        {"name": "empery_ex9901.htm", "size": "7418"},
+        {"name": "report.css", "size": "2767"},
+        {"name": "Show.js", "size": "1085"},
+        {"name": "FilingSummary.xml", "size": "1621"},
+        {"name": "0001683168-26-005307-index.html", "size": "0"},
+        {"name": "0001683168-26-005307.txt", "size": "0"},
+    ]
+    pnnt = [  # 0001171843-26-004478 (PNNT)
+        {"name": "MetaLinks.json", "size": "41781"},
+        {"name": "R1.htm", "size": "36641"},
+        {"name": "gnw-20250101_lab.xml", "size": "35956"},
+        {"name": "f8k_063026.htm", "size": "18901"},
+        {"name": "exh_991.htm", "size": "3860"},
+        {"name": "report.css", "size": "2767"},
+        {"name": "0001171843-26-004478-index.html", "size": "0"},
+    ]
+    assert edgar.pick_primary_doc(empd) == "empery_8k.htm", edgar.pick_primary_doc(empd)
+    assert edgar.pick_primary_doc(pnnt) == "f8k_063026.htm", edgar.pick_primary_doc(pnnt)
+    # R42.htm-style financial-report pages must be skipped too
+    assert edgar.pick_primary_doc(
+        [{"name": "R42.htm", "size": "99999"}, {"name": "abc_8k.htm", "size": "10"}]
+    ) == "abc_8k.htm"
+    # nothing usable -> None
+    assert edgar.pick_primary_doc([{"name": "R1.htm", "size": "5"}]) is None
+    print("pick_primary_doc OK")
+
+
 def test_synthesis():
     cfg = {"w_conviction": 0.5, "w_short": 0.3, "w_flow": 0.2}
     # bull filing, hard-to-borrow, call-skewed flow -> high score
@@ -112,6 +150,7 @@ if __name__ == "__main__":
     test_atom_parse()
     test_dedupe_and_startup_backlog()
     test_strip_html()
+    test_pick_primary_doc()
     test_synthesis()
     test_paperlog()
     print("ALL TESTS PASSED")
