@@ -41,27 +41,62 @@ def load_goal() -> dict:
     return yaml.safe_load(GOAL_PATH.read_text()) if GOAL_PATH.exists() else {}
 
 
+def _landed_usd(goal: dict) -> float:
+    """Landed capital in ****3232 per goal.yaml tranches.
+
+    Counts only tranches with a numeric usd and a non-TBD date (pending
+    tranches parse as strings and are excluded). RH buying power is the
+    acted-on truth; this is the documented-funding figure the guards use.
+    """
+    tranches = (goal.get("funding_source") or {}).get("tranches") or []
+    return sum(t["usd"] for t in tranches
+               if isinstance(t.get("usd"), (int, float))
+               and t.get("date") != "TBD")
+
+
 def funded_daily_cap(strategy: dict, goal: dict | None = None) -> int:
     """Daily trade cap adjusted for goal.yaml's partial-funding rule.
 
     While ****3232 is below $2500: 1 trade/day under $1000, 2 at
-    $1000-2499. At $2500+ the strategy.yaml base cap stands. Landed
-    capital = sum of tranches with a numeric usd and a non-TBD date
-    (pending tranches parse as strings and are excluded). RH buying
-    power is the acted-on truth; this guard only refuses to EXCEED
-    what the documented funding justifies — it never raises the base.
+    $1000-2499. At $2500+ the strategy.yaml base cap stands. This guard
+    only refuses to EXCEED what the documented funding justifies — it
+    never raises the base.
     """
     base = strategy["risk_controls"]["daily_loss_cap_trades"]
     goal = load_goal() if goal is None else goal
-    tranches = (goal.get("funding_source") or {}).get("tranches") or []
-    landed = sum(t["usd"] for t in tranches
-                 if isinstance(t.get("usd"), (int, float))
-                 and t.get("date") != "TBD")
+    landed = _landed_usd(goal)
     if landed >= 2500:
         return base
     if landed >= 1000:
         return min(base, 2)
     return min(base, 1)
+
+
+def funded_premium_band(strategy: dict, goal: dict | None = None) -> list:
+    """Premium band [lo, hi] resolved for the landed balance (v02.2).
+
+    strategy.yaml instrument.premium_per_contract_usd became a tier table
+    (by_account_balance) in v02.2; callers need the ONE band that applies
+    at today's funding. A flat pre-v02.2 band ([1.50, 2.50]) passes
+    through unchanged. Unmatched landed (spec gap) falls to the last
+    tier's band rather than guessing.
+    """
+    spec = strategy["instrument"]["premium_per_contract_usd"]
+    if isinstance(spec, list):                  # pre-v02.2 flat band
+        return list(spec)
+    goal = load_goal() if goal is None else goal
+    landed = _landed_usd(goal)
+    tiers = spec["by_account_balance"]
+    for tier in tiers:
+        if "below_usd" in tier and landed < tier["below_usd"]:
+            return list(tier["band"])
+        if "between_usd" in tier:
+            lo, hi = tier["between_usd"]
+            if lo <= landed < hi:
+                return list(tier["band"])
+        if "at_or_above_usd" in tier and landed >= tier["at_or_above_usd"]:
+            return list(tier["band"])
+    return list(tiers[-1]["band"])
 
 
 def load_engine_config(strategy: dict | None = None) -> dict:
@@ -75,7 +110,7 @@ def load_engine_config(strategy: dict | None = None) -> dict:
         "daily_cap": funded_daily_cap(strategy),
         "order_type": strategy["execution"]["order_type"],
         "max_positions": strategy["concurrency"]["max_open_positions"],
-        "premium_band": strategy["instrument"]["premium_per_contract_usd"],
+        "premium_band": funded_premium_band(strategy),
     }
     return eng
 

@@ -23,11 +23,12 @@ only (keeps the run cheap; reflection is about the past, not the present).
 ```
 You are running the HERMES weekly reflection loop.
 
-STEP 0 — READ THE YAML FIRST: read strategy/goal.yaml, strategy/strategy.yaml,
-journal/trades.jsonl, journal/hypotheses.jsonl. The files are the single
-source of truth — if your recap disagrees with disk, THE FILE WINS. Confirm
-the current objective (expectancy) and the hard_rails_locked list before you
-propose any change.
+STEP 0 — ANCHOR + READ THE YAML FIRST: run `date`; state "Today is <weekday>
+<YYYY-MM-DD>" and pair every date you mention with its verified weekday.
+Then read strategy/goal.yaml, strategy/strategy.yaml, journal/trades.jsonl,
+journal/hypotheses.jsonl. The files are the single source of truth — if your
+recap disagrees with disk, THE FILE WINS. Confirm the current objective
+(expectancy) and the hard_rails_locked list before you propose any change.
 
 Tag every claim [TOOL]/[STALE]/[MEMORY].
 
@@ -73,4 +74,20 @@ STEP 7 — REPORT:
   New hypothesis: __
   Strategy next week: v__ unchanged | v__ bumped (needs your GO)
   Halt triggers: none | __
+
+LOOP DISCIPLINE (hardened after week 1, 2026-07-10):
+- ZERO-TRADE WEEK: STEPS 1-3 report "insufficient data" honestly; do NOT
+  force a strategy.yaml change to feel productive. Goal-layer documentation
+  (decisions, contingencies, waivers in goal.yaml) may still land — with GO.
+- SUPERVISOR INTAKE: memo suggestions enter the system ONLY here. Before
+  treating any memo flag as resolved, verify the commit it cites exists
+  (`git show <hash> --stat`); the auditor cannot see chat decisions and has
+  mis-mapped suggestions before (2026-07-10 C1). Check disk, not claims.
+- CODE GUARDS COUNT AS THE VARIABLE: a new enforcement function in
+  lib/engine.py is that cycle's one change, and its name goes into
+  EVIDENCE_FUNCS in lib/supervisor.py IN THE SAME COMMIT — otherwise the
+  auditor flags it as missing forever.
+- ONE VARIABLE means one: if the week's data begs for two changes, pick the
+  higher-expectancy one and queue the other for next Friday. Verbal
+  decisions made mid-week are committed HERE, not via recaps.
 ```

@@ -132,19 +132,24 @@ A headline is a [MEMORY]-class claim until the numbers confirm it.
 If Claude starts making sloppy, "dumber than usual" mistakes, it's almost
 always one of these three — check them in order:
 
-1. **Model — biggest lever.** Run `/model` and confirm you're on **Fable 5**
-   (`/model claude-fable-5`) for real reasoning work — it's Anthropic's
-   Claude 5 tier, ABOVE Opus. Fallback order: Fable 5 → Opus
-   (`claude-opus-4-8`). Sonnet 4.6 is a capability step down. Switch models
-   only via `/model` — there is no `/FABLE` slash command.
+1. **Model — biggest lever.** Run `/model` and know what you're on.
+   AS OF 2026-07-13: **Fable 5 left flat-rate plans** (verified 2026-07-10;
+   it costs prepaid credits, $10/$50 per Mtok) — the working default is
+   **Opus 4.8** (`/model claude-opus-4-8`). Fable 5 (`claude-fable-5`,
+   Anthropic's Claude 5 tier, ABOVE Opus) is only available if credits are
+   loaded; don't assume it's there. Sonnet is a capability step down from
+   Opus. Switch models only via `/model` — there is no `/FABLE` slash
+   command. The desk was built to survive this: the judgment lives in
+   prompts/ + YAML, not in any one model (see prompts/desk_selftest.md to
+   verify a new model can hold the seat).
 
    **Mac CLI is PINNED at Claude Code 2.1.108 — do NOT update it.**
    Versions after 2.1.108 ship binaries that crash this Intel Mac with
    `zsh: illegal hardware instruction` (verified 2026-07-01: both the npm
    2.1.198 build AND the official `install.sh` native binary crashed;
    2.1.108 works). `DISABLE_AUTOUPDATER=1` is set in `~/.zshrc` on purpose
-   — leave it. Model routing is server-side, so 2.1.108 still runs Fable 5
-   fine. To retest Intel support later: temporarily reinstall latest via
+   — leave it. Model routing is server-side, so 2.1.108 runs whatever model
+   the plan offers (Opus 4.8, or Fable 5 via credits) fine. To retest Intel support later: temporarily reinstall latest via
    npm; if it still crashes, `npm install -g @anthropic-ai/claude-code@2.1.108`
    to restore.
 
