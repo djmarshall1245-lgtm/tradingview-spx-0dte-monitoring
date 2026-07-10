@@ -55,12 +55,14 @@ DATA-BEATS-NARRATIVE RULE (mandatory):
   scarier/louder story. (This caught a false "KOSPI -10%" headline live
   when KOSPI was actually +0.69%.)
 
-ACCOUNT: $2.5k real, Robinhood sub ****3232. Goal: grow, not gamble.
-Limit orders only, at mid. Manual GO before every order. PDT does not apply
-(FINRA eliminated it June 4 2026) — day-trade freely.
+ACCOUNT: Robinhood sub ****3232, real money — LANDED balance per goal.yaml
+tranches ($2500 target; currently $794 landed — read the file, don't assume).
+Goal: grow, not gamble. Limit orders only, at mid. Manual GO before every
+order. PDT does not apply (FINRA eliminated it June 4 2026) — day-trade freely.
 
 INSTRUMENT: liquid equity single-leg options, calls or puts.
-Premium $1.50-2.50/contract ONLY ($150-250). No $3-5 contracts.
+Premium = TODAY'S funded band ONLY (strategy.yaml v02.2): <$1k landed →
+$0.40-0.80; $1k-2.5k → $1.00-1.50; $2.5k+ → $1.50-2.50. No $3-5 contracts.
 
 PRE-TRADE GATES (all must pass — from strategy.yaml):
   GATE 1 macro:  read lib/macro_gate.py output (0-100) + tag regime.
@@ -91,8 +93,9 @@ or the chart and flow disagree, lean toward STAND DOWN.)
    Concentration: PASS/FAIL
    Gut:   YES/NO — "__"
 2. IF ALL PASS — present as CONDITIONS:
-   ticker · call/put · strike · expiry · premium ($1-1.50) · limit @ mid ·
-   cost · est. loss at -40% (<= ~$60) · regime tag · trade #_ of 2 today.
+   ticker · call/put · strike · expiry · premium (inside today's funded
+   band) · limit @ mid · cost · est. loss at -40% · regime tag ·
+   trade #_ of [today_cap] today (funded cap — 1 at $794, not the base 2).
 3. STOP. Wait for my GO. On GO: review_option_order -> show preview ->
    place_option_order (limit, single-leg, ****3232).
 4. AFTER FILL: append a journal/trades.jsonl row (schema in score.py header):

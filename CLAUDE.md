@@ -279,7 +279,9 @@ Sequence the main session follows:
    - Hard stop = **see `strategy/strategy.yaml.exits.hard_stop_pct` (currently
      −40%)** — file is source of truth; also exit on chart invalidation
      (signal flip, VWAP lost, MON EXIT, 3:30 close-out).
-   - **Daily cap = 2 SPX trades. Two losses = done for the day.**
+   - **Daily cap = the FUNDED cap** (goal.yaml partial_funding_rule: <$1000
+     landed → 1/day; $1000–2499 → 2; $2500+ → base 2; currently 1 at $794).
+     **Two losses = done for the day** regardless.
    - Conviction: **TREND** = full; **SCALP** = only if CONFLUENCE ≥3 and Flow
      not CONTRADICT; **EARLY** = prep only, never a live entry.
    - Time: entries only 9:45–2:30 ET, skip lunch 12–1, none after 2:30.
@@ -288,7 +290,7 @@ Sequence the main session follows:
      time, or cap hit). Tag any [MEMORY] assumption.
    - If approved → TRADE PLAN: CALL/PUT · 0DTE strike · entry trigger · TP =
      next Voodoo (R1/R2 calls, S1/S2 puts) · stop per `strategy.yaml`
-     (currently −40%) · "trade #_ of 2 today."
+     (currently −40%) · "trade #_ of <today_cap> today" (funded cap).
 
 Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
 decision-agent). They load on-demand — they do not bloat every-session context.
@@ -359,7 +361,8 @@ MANAGE & EXIT (every close also = review → approve → place):
 9. **Hard stop** = `strategy.yaml.exits.hard_stop_pct` (currently −40%) →
    sell-to-close immediately if hit.
 10. **Chart invalidation** (signal flip, VWAP lost, MON EXIT) or **3:30 ET** → exit.
-11. Log it as "trade #_ of 2 today." Two losses = done.
+11. Log it as "trade #_ of <today_cap> today" (funded cap — 1 at $794).
+    Two losses = done.
 
 ## Relay protocol (terminal = hands, strategist = brain, me = boss)
 

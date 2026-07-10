@@ -40,10 +40,14 @@ and propose — but NOTHING fires without my explicit terminal approval.
     - After 3:30 ET → force-close any open position (exitTime).
     - Weekend/holiday → market closed → STAND DOWN.
 
-0c. DAILY CAP CHECK: count entries in journal/trades.jsonl with today's date.
-    - If 2+ entries exist → "daily cap hit, stand down."
+0c. DAILY CAP CHECK: today's cap is the FUNDED cap, not the base 2.
+    Landed balance in ****3232 (goal.yaml tranches): under $1000 → 1/day;
+    $1000-2499 → 2; $2500+ → base. Code truth = lib/engine.py
+    funded_daily_cap(); the brief prints it as today_cap. (At the current
+    $794 landed, cap = 1.) Then count entries in journal/trades.jsonl with
+    today's date:
+    - If entries >= today's funded cap → "daily cap hit, stand down."
     - If 2+ losses today → "2 losses, done for the day."
-    - Apply partial_funding_rule from goal.yaml if ****3232 < $2500.
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # STEP 1 — CHART SCAN (AR Squeeze Elite Pro Dashboard)
@@ -193,11 +197,12 @@ If all gates 1-4 PASS, freeze the scan and display this EXACT layout:
   Action:    BUY TO OPEN
   Contract:  SPX [CALL/PUT] 0DTE
   Strike:    [ATM to 1-strike ITM, delta ~0.45-0.55]
-  Premium:   $[1.50-2.50] per contract (band from strategy.yaml)
+  Premium:   $[within TODAY'S funded band — strategy.yaml v02.2:
+             <$1k landed → 0.40-0.80; $1k-2.5k → 1.00-1.50; $2.5k+ → 1.50-2.50]
   Qty:       [contracts] — cost $[total] — max loss at -40% = $[amount]
   Order:     LIMIT @ MID ([bid+ask]/2)
   Account:   ****3232
-  Trade #:   [1 or 2] of 2 today
+  Trade #:   [N] of [today_cap] today (funded cap, not the base 2)
 
 ------------------------------------------------------------
   [TOOL RECEIPT]
@@ -302,11 +307,17 @@ exit_reason, pnl_usd, pnl_pct. Clear positions.yaml entry.
   No spreads, no condors, no straddles via MCP. Single calls or puts.
 - LIMIT ORDERS ONLY. Never market orders. Always at mid or better.
 - MANUAL APPROVAL ON EVERY ORDER. Entry AND exit. Nothing auto-fires.
-- PREMIUM BAND: $1.50-$2.50 per contract ($150-$250 total). No exceptions.
+- PREMIUM BAND: today's funded tier (strategy.yaml v02.2) — <$1k landed →
+  $0.40-0.80; $1k-2.5k → $1.00-1.50; $2.5k+ → $1.50-2.50. No exceptions.
 - HARD STOP: -40%. No widening, no "one more candle."
-- DAILY CAP: 2 trades max. 2 losses = done.
+- DAILY CAP: funded cap (goal.yaml partial_funding_rule — 1/day under
+  $1000; currently 1 at $794). 2 losses = done regardless.
 - MAX POSITIONS: 2 open at any time.
-- ACCOUNT FLOOR: $1,000. If equity approaches this, halt and ask user.
+- DRAWDOWN RAIL: 20% max total DD binds first (~$635 from the $794 start)
+  → halt and ask user. goal.yaml's $1000 floor is a failure boundary with
+  a documented owner waiver for the sub-$1000 launch (see
+  contingency_if_tranche2_misses.floor_waiver) — launching below it is
+  deliberate, trading through the DD rail is not.
 - CONDITIONS, NEVER ORDERS. You propose, I approve, then we place.
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
