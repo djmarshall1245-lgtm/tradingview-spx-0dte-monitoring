@@ -33,6 +33,35 @@ funding_source:
     tranche2_landed_usd: 0           # actual $ landed in ****3232 (target ~1706)
     account_above_floor_usd: false   # balance >= account_floor_usd (1000)
     guard_verified_in_runpy: true    # verified: 5 session_starts (07-06 thru 07-09) log today_cap:1 (S3)
+  # [Friday loop 2026-07-10, user GO] Owner decision made verbally Wed
+  # 2026-07-08, committed here so the 07-13 go-live is a checklist, not a
+  # memory test. Flip tender_outcome when the result is known — never guess it.
+  contingency_if_tranche2_misses:
+    decision: "Go live Mon 2026-07-13 at the $794 tier regardless of tender outcome"
+    decided_on: 2026-07-08           # verbal; written via Friday loop 2026-07-10
+    tender_outcome: TBD              # met | extended | not_met — owner reports, then flip
+    branches:
+      met: >-
+        Flip tender_cleared: true. Cash ETA 2026-07-13 to 07-15; flip
+        tranche2_landed_usd and account_above_floor_usd only when the ACH
+        actually lands as buying power in ****3232. Funded cap/band upgrade
+        automatically per partial_funding_rule + strategy.yaml v02.2 tiers.
+      extended: >-
+        Stay at the $794 tier (cap = 1/day, premium band [0.40, 0.80]).
+        Go-live proceeds Mon 2026-07-13. Revisit this block at the new
+        expiration date.
+      not_met: >-
+        Stay at the $794 tier indefinitely (cap = 1/day, premium band
+        [0.40, 0.80]). Go-live proceeds Mon 2026-07-13. Tier upgrades only
+        if/when other funds land.
+    floor_waiver: |
+      account_floor_usd (1000) in the failure: section is a FAILURE
+      boundary, not a go-live gate. Launching at $794 — below that floor —
+      is a deliberate, documented owner decision (GO 2026-07-10), not an
+      oversight. The 20% max_total_drawdown hard rail remains fully in
+      force and binds first at ~$635 from the $794 start.
+      account_above_floor_usd in the checklist stays false, honestly,
+      until real funding puts the balance over $1000.
 account:
   broker: robinhood
   subaccount: "****3232"
