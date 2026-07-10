@@ -16,7 +16,7 @@ window_start: "06:00"
 window_end: "22:00"
 timezone: "America/New_York"
 
-# --- Universe (refreshed daily from FMP screener) ---
+# --- Universe (refreshed from Unusual Whales screener, commit c136988 2026-07-09) ---
 universe:
   market_cap_min: 100000000     # $100M — below this, liquidity is untradeable
   market_cap_max: 2000000000    # $2B — the under-covered zone

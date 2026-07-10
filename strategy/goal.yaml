@@ -32,7 +32,7 @@ funding_source:
     tender_cleared: false            # Kuva tender closed + threshold met (expires Fri 2026-07-10)
     tranche2_landed_usd: 0           # actual $ landed in ****3232 (target ~1706)
     account_above_floor_usd: false   # balance >= account_floor_usd (1000)
-    guard_verified_in_runpy: false   # funded_daily_cap cap seen live in brief/journal output (S3)
+    guard_verified_in_runpy: true    # verified: 5 session_starts (07-06 thru 07-09) log today_cap:1 (S3)
 account:
   broker: robinhood
   subaccount: "****3232"
