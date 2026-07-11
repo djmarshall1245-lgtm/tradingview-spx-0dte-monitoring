@@ -79,15 +79,45 @@ class PaperLog:
             self.db.commit()
 
     def stats(self):
-        """Quick hit-rate readout for alerted signals with a 30m fill."""
-        rows = self.db.execute(
-            "SELECT direction, price_alert, p30m FROM signals "
-            "WHERE alerted=1 AND price_alert IS NOT NULL AND p30m IS NOT NULL").fetchall()
-        if not rows:
-            return "no filled alerts yet"
-        hits = 0
-        for direction, p0, p30 in rows:
-            if p0 and ((direction == "bull" and p30 > p0) or
-                       (direction == "bear" and p30 < p0)):
-                hits += 1
-        return f"{hits}/{len(rows)} correct at +30m ({100*hits/len(rows):.0f}%)"
+        """Hit-rate readout per follow-up window, echo-aware.
+
+        A fill exactly equal to the alert price is the after-hours quote
+        echo (or a genuinely flat close) — no directional information
+        either way, so it's excluded from the hit-rate denominator and
+        counted separately. p1d is the honest window (real next-session
+        prints); it also gets a signed avg %-move, bear moves sign-flipped,
+        so the number reads as "what a direction-following basket did."
+        """
+        total = self.db.execute(
+            "SELECT COUNT(*) FROM signals WHERE alerted=1").fetchone()[0]
+        if not total:
+            return "no alerts yet"
+        lines = []
+        for col in ("p30m", "p1d"):
+            rows = self.db.execute(
+                f"SELECT direction, price_alert, {col} FROM signals "
+                f"WHERE alerted=1 AND price_alert IS NOT NULL "
+                f"AND {col} IS NOT NULL").fetchall()
+            if not rows:
+                lines.append(f"+{col[1:]}: no fills yet ({total} alerts)")
+                continue
+            hits, flats, moves = 0, 0, []
+            for direction, p0, fill in rows:
+                if not p0:
+                    continue
+                if fill == p0:
+                    flats += 1          # echo or true flat — no signal
+                    continue
+                pct = (fill - p0) / p0 * 100
+                if direction == "bear":
+                    pct = -pct
+                moves.append(pct)
+                if pct > 0:
+                    hits += 1
+            scored = len(moves)
+            line = (f"+{col[1:]}: {hits} hit / {scored} scored "
+                    f"({flats} echo/flat skipped) of {total} alerts")
+            if col == "p1d" and moves:
+                line += f" | avg move {sum(moves)/scored:+.1f}% (direction-adj)"
+            lines.append(line)
+        return "\n".join(lines)
