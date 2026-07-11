@@ -3,10 +3,7 @@
 # "learned". Versioned; every prior version snapshots to history/.
 # Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
 
-# v02.3 [2026-07-11 Sat, user GO] — off-cycle display-only add: appended
-#   vwap, ema_8_21, add, tick, trin, vold, gamma_regime to
-#   terminal_engine.dashboard_display. No gate/rail touched; engine still OFF.
-version: "02.3"
+version: "02.2"
 based_on_goal: strategy/goal.yaml
 
 instrument:
@@ -165,16 +162,6 @@ terminal_engine:
     - field: squeeze_state                     # SQZ firing / momentum direction
     - field: signal                            # TREND / SCALP / EARLY / WATCH
     - field: time_window                       # ACTIVE / LUNCH / CLOSE OUT / WAIT
-    # ── added off-cycle 2026-07-11 (Sat), user GO — display-only, engine still OFF.
-    #    Field names only; each still needs wiring to a live source when engine flips on.
-    - field: vwap                              # session VWAP; bull = price > VWAP
-    - field: ema_8_21                          # 8/21 EMA stack; bull = 8 > 21   [source: chart study]
-    - field: add                               # NYSE $ADD advance-decline; >0 bullish
-    - field: tick                              # raw $TICK (tick_ma above is the 5MA)
-    - field: trin                              # NYSE $TRIN (Arms) — INVERTS: <1.0 bullish, >1.0 bearish
-    - field: vold                              # NYSE $VOLD up-vol − down-vol; >0 bullish
-    - field: gamma_regime                      # net GEX sign — pos=fade extremes, neg=go with breaks
-      source: unusualwhales                    # NOT the Pine dashboard — wire from UW GEX when engine on
 
   # ── 3. TARGET ARCHITECTURE (Voodoo levels from chart) ──────────────
   # Pulled from data_get_pine_labels, study_filter "AR SQUEEZE".
