@@ -233,7 +233,7 @@ def run(asof=None):
             # M3 is a REASONING model: it thinks in a visible <think> block
             # before writing. 3000 hit the cap mid-thought and produced no
             # report (observed first live run, Sat 2026-07-04) — leave room.
-            "max_tokens": 12000,
+            "max_tokens": 24000,
             "messages": [
                 {"role": "system", "content": _system_prompt()},
                 {"role": "user", "content": payload},
