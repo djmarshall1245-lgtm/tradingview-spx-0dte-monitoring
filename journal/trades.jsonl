@@ -3,3 +3,4 @@
 {"event": "session_start", "asof": "2026-07-08", "ts": "2026-07-08T07:46:17.457841-04:00", "today_cap": 1}
 {"event": "session_start", "asof": "2026-07-09", "ts": "2026-07-09T08:53:55.798887-04:00", "today_cap": 1}
 {"event": "session_start", "asof": "2026-07-10", "ts": "2026-07-10T08:57:27.187441-04:00", "today_cap": 1}
+{"event": "tender_outcome", "asof": "2026-07-10", "ts": "2026-07-10T21:18:55-04:00", "outcome": "extended", "new_expiration": "2026-07-16", "source": "SEC EDGAR acc 0001140361-26-028238"}
