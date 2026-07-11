@@ -39,7 +39,10 @@ funding_source:
   contingency_if_tranche2_misses:
     decision: "Go live Mon 2026-07-13 at the $794 tier regardless of tender outcome"
     decided_on: 2026-07-08           # verbal; written via Friday loop 2026-07-10
-    tender_outcome: TBD              # met | extended | not_met — owner reports, then flip
+    tender_outcome: extended         # met | extended | not_met — owner reports, then flip
+    # extended → new expiration Thu 2026-07-16 (was 07-10). SC TO-T/A filed
+    # 2026-07-10, SEC EDGAR acc 0001140361-26-028238 (CIK 0000320017); $4.00
+    # cash + CVR unchanged; 5,105,552 sh (55.98%) tendered. Stay at $794 tier.
     branches:
       met: >-
         Flip tender_cleared: true. Cash ETA 2026-07-13 to 07-15; flip
