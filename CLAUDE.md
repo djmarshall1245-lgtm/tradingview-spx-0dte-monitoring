@@ -219,11 +219,20 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
       🌲 Treeline = ES Low  → support below
       Note the ES→SPX offset (ES ~5-10 pts above SPX, fluctuates). Convert to SPX.
       Default window = today's regular session; say "full Globex" for overnight.
+   C) PDH / PDL = prior RTH session high / low, reported as their own lines
+      (not just baked into the pivot math). Same prior-RTH OHLCV pull that
+      feeds the Voodoo floor pivots — FMP/Alpaca SPY→SPX or ^GSPC, per the
+      "compute Voodoo fresh" rule. List both w/ price:
+      PDH → nearest resistance overhead | PDL → nearest support below.
    → Is SPX above / below / inside the Fireline–Treeline range?
    → Nearest Voodoo above = target | below = trip-wire
 
 ③ INSTITUTIONAL FLOW & POSITIONING        [TOOL] Unusual Whales
    GEX regime (pos/neg gamma) + call wall / put wall strikes
+   VEX (vanna exposure) .. sign + biggest-vanna strikes; how dealer
+                           hedging shifts when IV/VIX moves (2nd-order).
+                           Same UW get_greek_exposure_by_strike pull as GEX
+                           (vanna field) — report alongside gamma.
    Dark pool prints ...... biggest levels + bull/bear lean
    Net options flow ...... premium into calls vs puts
    OI changes / max pain . where dealers are pinned

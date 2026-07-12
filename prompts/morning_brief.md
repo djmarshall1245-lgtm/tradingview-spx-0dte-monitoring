@@ -147,8 +147,9 @@ stale data as if it were today's flow.
    available. Tag [CURRENT as of <last close date>], not [STALE]:
    - get_max_pain for FORWARD expiries (expiry > today): still current,
      dealers are still pinned to those strikes. Present normally.
-   - get_greek_exposure_by_strike: current state of dealer positioning.
-     Present normally.
+   - get_greek_exposure_by_strike: current state of dealer positioning
+     (gamma = GEX AND vanna = VEX — report both; VEX = how dealer hedging
+     flows shift when IV/VIX moves). Present normally.
    - get_open_interest_changes: current OI state. Present normally.
 
    INTRADAY (market open + > 15 min in): pull all freely, tag [TOOL].
