@@ -302,7 +302,17 @@ Sequence the main session follows:
      (currently −40%) · "trade #_ of <today_cap> today" (funded cap).
 
 Subagent files live in `.claude/agents/` (quant-agent, flow-agent,
-decision-agent). They load on-demand — they do not bloat every-session context.
+decision-agent, tape-agent). They load on-demand — they do not bloat
+every-session context.
+
+**Optional 4th agent — tape-agent (manipulation-footprint check).** Trigger:
+"Run a tape integrity check." Runs the 6-check sweep (swept levels / fake
+breaks, thin-volume pushes, SPY spread blowout, dark-vs-lit divergence,
+max-pain pinning, headline cross-check) → TAPE CLEAN / SUSPECT / HOSTILE.
+ADVISORY only — it gates nothing; SUSPECT = treat like Flow MIXED, HOSTILE =
+stand-down recommendation. It detects footprints, NOT spoofing (no
+order-book depth feed exists in this stack — never claim otherwise). Wiring
+HOSTILE into the decision gate as a hard REJECT = Friday-loop candidate.
 
 **Auto-think at decisions (by design, not drift):** the decision prompts embed
 reasoning triggers so Claude reasons hard at the money-moving moments WITHOUT you
