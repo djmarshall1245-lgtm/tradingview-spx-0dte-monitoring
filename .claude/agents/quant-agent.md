@@ -18,10 +18,15 @@ Pull and report (every line tagged [TOOL] + the tool used):
    R:R, ATR(14), MON EXIT, PULLBACK, CONFLUENCE (the x/6 score + which factors).
 3. Voodoo levels — data_get_pine_labels, study_filter "AR SQUEEZE".
    List R3 R2 R1 PDH PDL S1 S2 S3 with prices, high→low.
-4. Fireline / Treeline — data_get_ohlcv on ES1! (summary:true). The AR script
+4. Internals — data_get_pine_tables, study_filter "Internals" (the "SQUEEZE MAX
+   Market Internals" study). Report all four + composite verbatim: TICK, ADD,
+   VOLD, TRIN, and the BULL/BEAR composite tag + score. This table is the
+   authoritative live read — do NOT substitute the smoothed study-plot TICK
+   value (data_get_study_values gives a lagged number that disagrees).
+5. Fireline / Treeline — data_get_ohlcv on ES1! (summary:true). The AR script
    does NOT plot these. Fireline = ES session HIGH (resistance), Treeline = ES
    session LOW (support). Convert ES→SPX (compute live offset from ES1! vs SPX).
-5. State where SPX sits: which two Voodoo levels it's between, and inside /
+6. State where SPX sits: which two Voodoo levels it's between, and inside /
    above / below the Fireline–Treeline range.
 
 Output a compact snapshot. If any pull returns empty (e.g. JC script not visible
