@@ -246,15 +246,19 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
 
 ④ CATALYSTS                               [TOOL] Firecrawl web (show URLs)
    Economic calendar today . event + time ET + prior/consensus
+                             PRIMARY: investing.com/economic-calendar
    Earnings (overnight/AMC) . names that move SPX/sectors
    Upgrades / downgrades .... ticker, firm, old→new
    Geopolitical / headlines . one-liner + source URL
 
 ⑤ NEWS (top movers)                       [TOOL] Firecrawl web (show URLs)
    3-5 headlines, each with a clickable link
-   Free sources: investing.com (news + econ calendar), reuters.com,
+   #1 SOURCE = investing.com (news + econ calendar) — pull it FIRST every
+   brief. Fallbacks (site down / story needs a second source): reuters.com,
    apnews.com, cnbc.com, marketwatch.com, finance.yahoo.com,
-   cmegroup.com FedWatch, sec.gov EDGAR
+   cmegroup.com FedWatch, sec.gov EDGAR.
+   DATA BEATS NARRATIVE still applies to investing.com headlines like any
+   other — a scraped story is [MEMORY]-class until the numbers confirm it.
 
 ⑥ SUMMARY & BIAS
    Bias: BULLISH / BEARISH / NEUTRAL-CHOP
