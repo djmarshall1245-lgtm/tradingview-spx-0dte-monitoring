@@ -40,6 +40,13 @@ concentration check. Do not invent sub-rules ("ASK-side", "ascending fills",
 "3+ alerts") that aren't in `strategy.yaml`. New rules go in via the Friday
 loop with my GO, never via a recap.
 
+## DAILY ROUTINE — lives in prompts/daily_routine.md
+
+The user's full desk day (pre-market → window → close → evening → Friday) is
+written down in `prompts/daily_routine.md`. When asked "what's my routine" /
+"what's next", read that file and answer from it — never reconstruct the
+routine from memory. Routine changes are edits to that file.
+
 ## START-OF-SESSION RULE — verify MCP tools BEFORE any trading action
 
 Right after reading the YAML files, run `/mcp` and confirm all five of
