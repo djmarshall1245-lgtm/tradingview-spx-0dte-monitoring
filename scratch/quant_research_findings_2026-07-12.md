@@ -113,3 +113,31 @@ shrinks to a 3-line pointer. Skill step 0 = read strategy.yaml +
 goal.yaml (numbers stay in YAML — procedure only, no values). Win:
 ~2-3k tokens off every session + one canonical trigger. Zero decision-
 quality change. Build only with Friday-loop GO.
+
+## 7. Candidate E — queued 2026-07-15: AR Squeeze v3 chart-layer toggles
+
+Fable 5 audit of the live Pine Script (v2) found 3 defects + 4 upgrades.
+v3 is written and pushed: `scratch/ar_squeeze_pro_max_v3_2026-07-15.pine`.
+
+REPAIRS baked in (defect fixes, not rule changes — swap ASAP, no GO gate):
+- R1 broken alert placeholders ({{low[1]}} printed literally — no stop
+  price in any alert since day 1)
+- R2 $TICK exit knife-edge (exit fired at the entry threshold → chopped
+  out of working trades within minutes; now hysteresis: enter ±200,
+  exit through 0)
+- R3 MTF squeeze repaint (15m/30m used the live developing bar; now
+  confirmed-bar idiom + signals-on-bar-close gate)
+
+TOGGLES default OFF (= v2 behavior) — each is ONE Friday-loop variable:
+- T4 nearest-Voodoo TP (never target a level already passed)
+- T5 desk entry window 09:45–14:30 + lunch skip (mirrors strategy.yaml —
+  arguably a repair since the rule already exists; still gated for
+  discipline)
+- T6 TLT filter mode: 1-bar (v2, noise) / 30-bar slow / OFF
+- T7 auto PDH/PDL from prior daily bar (kills stale-level failure mode)
+
+After swapping scripts on TradingView: recreate all 6 alerts, trigger
+"Once Per Bar Close". Alert names unchanged. quant-agent reads the same
+dashboard/labels — no agent changes needed (script title changed to
+"AR SQUEEZE PRO MAX v3 + LABELS"; if data_get_pine_labels filters on
+study title "AR SQUEEZE", the substring still matches).

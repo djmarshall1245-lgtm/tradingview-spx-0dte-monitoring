@@ -1,0 +1,292 @@
+//@version=6
+indicator("AR SQUEEZE PRO MAX v3 + LABELS", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+// ============================================================================
+// v3 (2026-07-15) — changes vs v2:
+//
+// BAKED-IN REPAIRS (always on):
+//  R1. Alerts substitute real numbers. Stop/TP1/TP2 are plotted invisibly and
+//      referenced as {{plot("Stop")}} etc. — v2's {{low[1]}} printed literally
+//      in the alert text (not a valid placeholder).
+//  R2. $TICK exit hysteresis. Entry still needs TICK 5MA beyond the +/-Entry
+//      threshold (default 200), but the exit only fires past the SEPARATE
+//      Exit threshold (default 0). v2 exited the instant TICK 5MA ticked back
+//      through the entry level — chopped out of working trades in minutes.
+//  R3. MTF squeeze no longer repaints. 15m/30m states use the last CONFIRMED
+//      higher-TF bar ([1] + lookahead_on idiom). Plus "signals on confirmed
+//      bars only" gate (default ON) so intrabar signals can't paint-and-vanish.
+//
+// TOGGLES (default OFF = v2 behavior) — Friday-loop candidates, flip w/ GO:
+//  T4. Nearest-Voodoo TP — TP1/TP2 = nearest levels above (calls) / below
+//      (puts) the entry price, instead of always R1/R2.
+//  T5. Desk window — entries only 09:45–14:30 ET, skip 12:00–13:00 lunch
+//      (matches strategy.yaml; v2 only blocked after 14:30).
+//  T6. TLT filter mode — "1-bar (v2)" / "30-bar slow" / "OFF". v2's 1-bar %
+//      change on an intraday chart is noise that vetoes ~half of signals.
+//      NOTE the regime assumption either way: TLT-down = stocks-up holds in
+//      growth tape, is BACKWARDS on rate-scare days (2022-style).
+//  T7. Auto PDH/PDL — pulled from the prior daily bar; manual PDH/PDL inputs
+//      ignored when ON. Kills the stale-level failure mode.
+//
+// ALERT SETUP: after swapping scripts, RECREATE all alerts and set trigger to
+// "Once Per Bar Close". Alert names are unchanged from v2.
+// ============================================================================
+
+// === USER INPUTS ===
+sqzLength = input.int(20, "Squeeze Length", group="Squeeze")
+bbMult = input.float(2.0, "BB StdDev", group="Squeeze")
+kcLength = input.int(20, "KC Length", group="Squeeze")
+kcMult = input.float(1.5, "KC ATR Mult", group="Squeeze")
+emaLen = input.int(21, "21 EMA", group="Trend")
+atrLen = input.int(10, "Supertrend ATR", group="Trend")
+atrMult = input.float(3.0, "Supertrend Factor", group="Trend")
+tickThresh = input.int(200, "$TICK Entry Threshold", group="Internals")
+tickExitThresh = input.int(0, "$TICK Exit Threshold (hysteresis)", group="Internals", tooltip="R2: entry needs TICK 5MA beyond +/-Entry Threshold; exit only fires when it crosses THIS level the other way. v2 exited at the entry threshold and chopped out early. Calls exit when TICK 5MA < this; puts when > -this.")
+tltThresh = input.float(0.0, "TLT % Threshold", group="Internals")
+tltMode = input.string("1-bar (v2)", "TLT Filter Mode", options=["1-bar (v2)", "30-bar slow", "OFF"], group="Internals", tooltip="T6: '1-bar (v2)' = v2 behavior (noisy on intraday charts). '30-bar slow' = % change over 30 bars. 'OFF' = TLT never blocks a signal.")
+
+confirmOnly = input.bool(true, "Signals on confirmed bars only (no repaint)", group="Signals", tooltip="R3: signal fires at bar close instead of intrabar, so it can never paint and then vanish. Historical bars are unaffected.")
+useDeskWindow = input.bool(false, "T5: Desk entry window 09:45-14:30, skip lunch", group="Signals", tooltip="OFF = v2 behavior (entries any time before 14:30). ON = entries only 09:45-14:30 ET and none 12:00-13:00 — matches strategy.yaml.")
+useNearestTP = input.bool(false, "T4: TP = nearest Voodoo above/below entry", group="Signals", tooltip="OFF = v2 behavior (TP always R1/R2 for calls, S1/S2 for puts). ON = TP1/TP2 are the two nearest levels in the trade direction from the entry price.")
+
+// === VOODOO LINES - UPDATE DAILY PRE-MARKET ===
+r3 = input.float(7165, "Voodoo R3", group="Levels")
+r2 = input.float(7155, "Voodoo R2", group="Levels")
+r1 = input.float(7145, "Voodoo R1", group="Levels")
+pdh = input.float(7140, "Prev Day High", group="Levels")
+pdl = input.float(7120, "Prev Day Low", group="Levels")
+s1 = input.float(7115, "Voodoo S1", group="Levels")
+s2 = input.float(7105, "Voodoo S2", group="Levels")
+s3 = input.float(7095, "Voodoo S3", group="Levels")
+useAutoPDHPDL = input.bool(false, "T7: Auto PDH/PDL from prior daily bar", group="Levels", tooltip="ON = PDH/PDL pulled from yesterday's daily bar automatically; the manual inputs above are ignored. Voodoo pivots stay manual either way.")
+
+// T7: prior-day high/low ([1] + lookahead_on = confirmed prior bar, no repaint)
+autoPdh = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+autoPdl = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+pdhLvl = useAutoPDHPDL ? autoPdh : pdh
+pdlLvl = useAutoPDHPDL ? autoPdl : pdl
+
+// === 1. 21 EMA TREND FILTER ===
+ema21 = ta.ema(close, emaLen)
+plot(ema21, "21 EMA", color.white, 2)
+
+// === 2. TTM SQUEEZE CORE LOGIC ===
+basis = ta.sma(close, sqzLength)
+dev = bbMult * ta.stdev(close, sqzLength)
+upperBB = basis + dev
+lowerBB = basis - dev
+ma = ta.sma(close, kcLength)
+rangema = ta.sma(ta.tr, kcLength)
+upperKC = ma + rangema * kcMult
+lowerKC = ma - rangema * kcMult
+sqzOn = lowerBB > lowerKC and upperBB < upperKC
+sqzOff = lowerBB < lowerKC and upperBB > upperKC
+
+// Squeeze Momentum Oscillator
+highest_high = ta.highest(high, kcLength)
+lowest_low = ta.lowest(low, kcLength)
+avg_hl_ema = ta.ema(math.avg(highest_high, lowest_low), kcLength)
+momentum = ta.linreg(close - avg_hl_ema, kcLength, 0)
+
+// === 3. MULTI-TIMEFRAME SQUEEZE ===
+// R3: [1] + lookahead_on = last CONFIRMED 15m/30m bar — does not repaint.
+// (v2 requested the live HTF bar, whose state flipped intrabar.)
+sqz_15_off = request.security(syminfo.tickerid, "15", sqzOff[1], lookahead=barmerge.lookahead_on)
+sqz_30_off = request.security(syminfo.tickerid, "30", sqzOff[1], lookahead=barmerge.lookahead_on)
+allSqzFire = sqzOff and sqz_15_off and sqz_30_off
+
+// === 4. PORSCHE DOTS - SUPERTREND ===
+[supertrend, direction] = ta.supertrend(atrMult, atrLen)
+isLongTrend = direction < 0
+isShortTrend = direction > 0
+plot(isLongTrend? supertrend : na, "Porsche Long", style=plot.style_circles, color=color.lime, linewidth=3)
+plot(isShortTrend? supertrend : na, "Porsche Short", style=plot.style_circles, color=color.red, linewidth=3)
+
+// === 5. EARLY IN-N-OUT BAR COLORING ===
+ha_close = (open + high + low + close) / 4
+var float ha_open = na
+ha_open := (nz(ha_open[1]) + nz(ha_close[1])) / 2
+bullish = ha_close > ha_open and close > ema21 and momentum > 0
+bearish = ha_close < ha_open and close < ema21 and momentum < 0
+barcolor(bullish? color.lime : bearish? color.red : color.gray)
+
+// === 6. $TICK + TLT INTERNALS ===
+tick = request.security("USI:TICK", timeframe.period, close)
+tick_ma = ta.sma(tick, 5)
+tlt = request.security("TLT", timeframe.period, close)
+tltBars = tltMode == "30-bar slow" ? 30 : 1
+tlt_chg = (tlt - tlt[tltBars]) / tlt[tltBars] * 100
+
+tickLong = tick_ma > tickThresh
+tickShort = tick_ma < -tickThresh
+tltLong = tltMode == "OFF" ? true : tlt_chg < tltThresh
+tltShort = tltMode == "OFF" ? true : tlt_chg > tltThresh
+
+// R2: exit hysteresis — separate, looser thresholds than entry
+tickExitLong = tick_ma < tickExitThresh    // exits CALLS
+tickExitShort = tick_ma > -tickExitThresh  // exits PUTS
+
+// === 7. VOODOO LEVELS PLOT ===
+plot(r3, "R3", color.new(color.red, 0), 2, plot.style_linebr)
+plot(r2, "R2", color.new(color.maroon, 0), 1, plot.style_linebr)
+plot(r1, "R1", color.new(color.orange, 0), 1, plot.style_linebr)
+plot(pdhLvl, "PDH", color.new(color.yellow, 0), 1, plot.style_linebr)
+plot(pdlLvl, "PDL", color.new(color.yellow, 0), 1, plot.style_linebr)
+plot(s1, "S1", color.new(color.lime, 0), 2, plot.style_linebr)
+plot(s2, "S2", color.new(color.green, 0), 1, plot.style_linebr)
+plot(s3, "S3", color.new(color.teal, 0), 1, plot.style_linebr)
+
+// T4: nearest-level targets
+f_tpAbove(px, lv) =>
+    above = array.new_float()
+    for i = 0 to array.size(lv) - 1
+        v = array.get(lv, i)
+        if v > px
+            array.push(above, v)
+    array.sort(above, order.ascending)
+    t1 = array.size(above) >= 1 ? array.get(above, 0) : float(na)
+    t2 = array.size(above) >= 2 ? array.get(above, 1) : float(na)
+    [t1, t2]
+
+f_tpBelow(px, lv) =>
+    below = array.new_float()
+    for i = 0 to array.size(lv) - 1
+        v = array.get(lv, i)
+        if v < px
+            array.push(below, v)
+    array.sort(below, order.descending)
+    t1 = array.size(below) >= 1 ? array.get(below, 0) : float(na)
+    t2 = array.size(below) >= 2 ? array.get(below, 1) : float(na)
+    [t1, t2]
+
+levelsArr = array.from(r3, r2, r1, pdhLvl, pdlLvl, s1, s2, s3)
+
+// === 8. TRADE STATE MANAGEMENT ===
+var float entryPrice = na
+var string tradeType = na
+var float stopPrice = na
+var float tp1Price = na
+var float tp2Price = na
+var line tp1Line = na
+var line tp2Line = na
+var line slLine = na
+var line trailLine = na
+
+// Time filter (T5 optional desk window; OFF = v2 behavior: only the 14:30 cutoff)
+minsET = hour(time, "America/New_York") * 60 + minute(time, "America/New_York")
+baseTimeOk = minsET < 14 * 60 + 30
+deskTimeOk = minsET >= 9 * 60 + 45 and minsET < 14 * 60 + 30 and not (minsET >= 12 * 60 and minsET < 13 * 60)
+timeOk = useDeskWindow ? deskTimeOk : baseTimeOk
+exitTime = hour(time, "America/New_York") == 15 and minute(time, "America/New_York") >= 30
+
+// === 9. SIGNAL LOGIC: CALLS ===
+callSetup = sqzOff and bullish and isLongTrend and timeOk
+callConfirm = callSetup and tickLong and tltLong and (not confirmOnly or barstate.isconfirmed)
+callScalp = callConfirm and not allSqzFire
+callTrend = callConfirm and allSqzFire
+
+// === 10. SIGNAL LOGIC: PUTS ===
+putSetup = sqzOff and bearish and isShortTrend and timeOk
+putConfirm = putSetup and tickShort and tltShort and (not confirmOnly or barstate.isconfirmed)
+putScalp = putConfirm and not allSqzFire
+putTrend = putConfirm and allSqzFire
+
+// === 11. ENTER TRADE + SET TP/SL ===
+if callConfirm and na(entryPrice)
+    entryPrice := close
+    stopPrice := low[1]
+    if useNearestTP
+        [t1, t2] = f_tpAbove(close, levelsArr)
+        tp1Price := na(t1) ? r1 : t1
+        tp2Price := na(t2) ? r2 : t2
+    else
+        tp1Price := r1
+        tp2Price := r2
+    tradeType := callTrend? "CALL TREND" : "CALL SCALP"
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+    tp1Line := line.new(bar_index, tp1Price, bar_index + 20, tp1Price, color=color.lime, style=line.style_dashed, width=2)
+    tp2Line := line.new(bar_index, tp2Price, bar_index + 40, tp2Price, color=color.lime, style=line.style_dotted, width=2)
+    slLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, style=line.style_solid, width=2)
+    trailLine := line.new(bar_index, supertrend, bar_index + 1, supertrend, color=color.yellow, width=3)
+
+if putConfirm and na(entryPrice)
+    entryPrice := close
+    stopPrice := high[1]
+    if useNearestTP
+        [t1, t2] = f_tpBelow(close, levelsArr)
+        tp1Price := na(t1) ? s1 : t1
+        tp2Price := na(t2) ? s2 : t2
+    else
+        tp1Price := s1
+        tp2Price := s2
+    tradeType := putTrend? "PUT TREND" : "PUT SCALP"
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+    tp1Line := line.new(bar_index, tp1Price, bar_index + 20, tp1Price, color=color.lime, style=line.style_dashed, width=2)
+    tp2Line := line.new(bar_index, tp2Price, bar_index + 40, tp2Price, color=color.lime, style=line.style_dotted, width=2)
+    slLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, style=line.style_solid, width=2)
+    trailLine := line.new(bar_index, supertrend, bar_index + 1, supertrend, color=color.yellow, width=3)
+
+// === 13. EXIT LOGIC ===
+// R2: exits use the hysteresis thresholds (tickExitLong/Short), not the entry ones
+exitCall = not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "CALL") and (not isLongTrend or tickExitLong or exitTime or close < stopPrice)
+exitPut = not na(entryPrice) and not na(tradeType) and str.contains(tradeType, "PUT") and (not isShortTrend or tickExitShort or exitTime or close > stopPrice)
+
+if exitCall or exitPut
+    entryPrice := na
+    tradeType := na
+    line.delete(tp1Line), line.delete(tp2Line), line.delete(slLine), line.delete(trailLine)
+
+// Update trailing stop (one block — CALL and PUT behave identically)
+if not na(entryPrice)
+    line.set_y1(trailLine, supertrend)
+    line.set_y2(trailLine, supertrend)
+    line.set_x2(trailLine, bar_index + 1)
+
+// === 14. PLOT LABELS ===
+plotshape(callScalp, "CALL SCALP", style=shape.labelup, color=color.lime, text="CALL SCALP", textcolor=color.black, location=location.belowbar, size=size.small)
+plotshape(callTrend, "CALL TREND", style=shape.labelup, color=color.lime, text="CALL TREND", textcolor=color.black, location=location.belowbar, size=size.normal)
+plotshape(putScalp, "PUT SCALP", style=shape.labeldown, color=color.red, text="PUT SCALP", textcolor=color.white, location=location.abovebar, size=size.small)
+plotshape(putTrend, "PUT TREND", style=shape.labeldown, color=color.red, text="PUT TREND", textcolor=color.white, location=location.abovebar, size=size.normal)
+
+// === 15. SQUEEZE BACKGROUND ===
+bgcolor(sqzOn? color.new(color.red, 90) : na)
+
+// === 16. INFO TABLE ===
+var table infoTable = table.new(position.top_right, 1, 4, border_width=2, border_color=color.white, frame_color=color.black, frame_width=1)
+if barstate.islast
+    table.cell(infoTable, 0, 0, "SPX: " + str.tostring(close, "#.##"), text_color=color.white, bgcolor=color.new(color.black, 0), text_size=size.large)
+    table.cell(infoTable, 0, 1, "TLT %Chg: " + str.tostring(nz(tlt_chg, 0), "#.##") + "%", text_color=nz(tlt_chg, 0) < 0? color.lime : color.red, bgcolor=color.new(color.black, 0))
+    table.cell(infoTable, 0, 2, "$TICK 5MA: " + str.tostring(nz(tick_ma, 0), "#"), text_color=nz(tick_ma, 0) > tickThresh? color.lime : nz(tick_ma, 0) < -tickThresh? color.red : color.yellow, bgcolor=color.new(color.black, 0))
+    table.cell(infoTable, 0, 3, sqzOn? "SQUEEZE ON" : allSqzFire? "MTF TREND" : "SCALP MODE", text_color=sqzOn? color.red : color.lime, bgcolor=color.new(color.black, 0))
+
+// === 17. ALERTS ===
+// R1: invisible plots so alert messages can substitute the live trade numbers
+plot(stopPrice, "Stop", display=display.none)
+plot(tp1Price, "TP1", display=display.none)
+plot(tp2Price, "TP2", display=display.none)
+
+alertcondition(callScalp, "CALL SCALP Entry", "0DTE CALL SCALP: Entry {{close}}, TP1 {{plot(\"TP1\")}}, Stop {{plot(\"Stop\")}}")
+alertcondition(callTrend, "CALL TREND Entry", "0DTE CALL TREND: Entry {{close}}, TP1 {{plot(\"TP1\")}}, TP2 {{plot(\"TP2\")}}, MTF Squeeze")
+alertcondition(putScalp, "PUT SCALP Entry", "0DTE PUT SCALP: Entry {{close}}, TP1 {{plot(\"TP1\")}}, Stop {{plot(\"Stop\")}}")
+alertcondition(putTrend, "PUT TREND Entry", "0DTE PUT TREND: Entry {{close}}, TP1 {{plot(\"TP1\")}}, TP2 {{plot(\"TP2\")}}, MTF Squeeze")
+alertcondition(exitCall, "EXIT CALLS", "EXIT CALLS: Trend flipped OR $TICK exit OR 15:30 ET OR stop hit")
+alertcondition(exitPut, "EXIT PUTS", "EXIT PUTS: Trend flipped OR $TICK exit OR 15:30 ET OR stop hit")
+
+// === 18. VOODOO LEVEL LABELS — permanent pills at right edge ===
+var label lbl_r3  = na
+var label lbl_r2  = na
+var label lbl_r1  = na
+var label lbl_pdh = na
+var label lbl_pdl = na
+var label lbl_s1  = na
+var label lbl_s2  = na
+var label lbl_s3  = na
+if barstate.islast
+    label.delete(lbl_r3),  lbl_r3  := label.new(bar_index + 2, r3,  "R3",  color=color.new(color.red, 80),    textcolor=color.red,    style=label.style_label_left, size=size.small)
+    label.delete(lbl_r2),  lbl_r2  := label.new(bar_index + 2, r2,  "R2",  color=color.new(color.maroon, 80), textcolor=color.maroon, style=label.style_label_left, size=size.small)
+    label.delete(lbl_r1),  lbl_r1  := label.new(bar_index + 2, r1,  "R1",  color=color.new(color.orange, 80), textcolor=color.orange, style=label.style_label_left, size=size.small)
+    label.delete(lbl_pdh), lbl_pdh := label.new(bar_index + 2, pdhLvl, "PDH", color=color.new(color.yellow, 80), textcolor=color.yellow, style=label.style_label_left, size=size.small)
+    label.delete(lbl_pdl), lbl_pdl := label.new(bar_index + 2, pdlLvl, "PDL", color=color.new(color.yellow, 80), textcolor=color.yellow, style=label.style_label_left, size=size.small)
+    label.delete(lbl_s1),  lbl_s1  := label.new(bar_index + 2, s1,  "S1",  color=color.new(color.lime, 80),   textcolor=color.lime,   style=label.style_label_left, size=size.small)
+    label.delete(lbl_s2),  lbl_s2  := label.new(bar_index + 2, s2,  "S2",  color=color.new(color.green, 80),  textcolor=color.green,  style=label.style_label_left, size=size.small)
+    label.delete(lbl_s3),  lbl_s3  := label.new(bar_index + 2, s3,  "S3",  color=color.new(color.teal, 80),   textcolor=color.teal,   style=label.style_label_left, size=size.small)
