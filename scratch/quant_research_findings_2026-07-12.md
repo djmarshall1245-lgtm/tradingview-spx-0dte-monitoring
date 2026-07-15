@@ -103,3 +103,13 @@ Full claim set with verbatim quotes: workflow output (cloud session
 `wv1gdlsnx.output`); resume the verify pass with
 `resumeFromRunId: wf_0ffe4880-3af` if the ⏳ claims need confirmation
 before Friday.
+
+## 6. Candidate D — queued 2026-07-15: package the trade desk as a skill
+
+Owner decision Wed 2026-07-15: NOT this week (one-variable discipline,
+go-live week). Move (not copy) the Live Trade Desk procedure from
+CLAUDE.md into `.claude/skills/spx-0dte-desk/SKILL.md`; CLAUDE.md section
+shrinks to a 3-line pointer. Skill step 0 = read strategy.yaml +
+goal.yaml (numbers stay in YAML — procedure only, no values). Win:
+~2-3k tokens off every session + one canonical trigger. Zero decision-
+quality change. Build only with Friday-loop GO.
