@@ -213,12 +213,16 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
      saved template so it never goes stale.
 
 ② KEY LEVELS                              [TOOL] TradingView  (two pulls)
-   A) Voodoo levels (pivot S/R) — from my chart script:
-      data_get_pine_labels, study_filter: "AR SQUEEZE"  (script visible on chart)
-      List R3..PP..S3 high→low w/ price. These ARE on the chart.
-      → If price gapped overnight and the Voodoo inputs still show the prior
-        day's numbers, REMIND me to update R3..S3 before trading — stale levels
-        = wrong targets.
+   A) Voodoo levels (pivot S/R) — COMPUTE FRESH, do NOT read the chart labels:
+      In the MORNING BRIEF ONLY, re-compute floor pivots from prior RTH OHLC
+      (PP/R1-R3/S1-S3/PDH/PDL). Present SPX + SPY ÷10. **Do NOT call
+      data_get_pine_labels here and do NOT display the on-chart R3..S3 — not
+      even to flag them stale.** Andre enters those manually and pulling them
+      in the brief has been flagged ~20+ times as wasting his tokens on wrong
+      levels. Compute → show the computed table → done.
+      (Everywhere ELSE — trade desk, intraday — read his labels as-is via
+      data_get_pine_labels; never recompute there. See memory
+      feedback_voodoo_manual_input.)
    B) Fireline / Treeline = /ES futures session high/low (NOT pivots, NOT labels —
       the AR Squeeze script does NOT plot these):
       data_get_ohlcv on ES1! (summary: true), then:
