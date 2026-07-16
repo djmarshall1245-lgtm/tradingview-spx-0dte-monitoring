@@ -48,6 +48,12 @@ If the user says their routine changed, update THIS file (the file wins).
   (Candidates A, D) + latest `journal/audits/` owner dispositions.
 
 ## Weekly anchors (2026-07 — prune when stale)
-- Thu 2026-07-16: Kuva tender expiration — flip `tender_outcome` in
-  goal.yaml when the result is known; never guess it.
+- Thu 2026-07-16: Kuva tender expired 11:59 PM ET. As of 19:01 ET no
+  result filed — `tender_outcome` stays `extended` (never guess it).
+- **Fri 2026-07-17 AM: PULL EDGAR for the tender result FIRST THING.**
+  SEC EDGAR CIK 0000320017 (Lisata), look for the expiration-result
+  SC TO-T/A. If it reports final shares tendered + deal proceeding →
+  flip `goal.yaml` `tender_outcome` (met/not_met) + downstream checklist
+  with user GO. Note: closing still depends on buyer financing by the
+  07-17 outside date — shares tendered ≠ cash landed in ****3232.
 - Fri 2026-07-17: first Friday loop of the live desk.
