@@ -37,9 +37,12 @@ If the user says their routine changed, update THIS file (the file wins).
   a correctly-gated flat day is a WIN, not a miss).
 
 ## Evening (any time after close)
-1. `python3 run.py --supervise` — manual audit (MiniMax second-model check).
+1. `python3 run.py --close` — log session_end for the day (add
+   `--notes "..."` for anything worth remembering). This is what makes a
+   no-trade day verifiable instead of invisible. [added Friday loop 07-17, S2]
+2. `python3 run.py --supervise` — manual audit (MiniMax second-model check).
    NEVER scheduled. Read the memo; disagreements are Friday-loop input.
-2. Commit + push journal/audit updates so the cloud session sees them.
+3. Commit + push journal/audit updates so the cloud session sees them.
 
 ## Friday only (after close)
 - Run the Friday loop (`prompts/friday_loop.md`): review the week vs

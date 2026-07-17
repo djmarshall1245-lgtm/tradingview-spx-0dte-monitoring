@@ -57,7 +57,8 @@ PAYLOAD_FILES = [
 # funded_daily_cap fix as missing on 2026-07-06 because it only saw the git
 # log). When a new guard lands in lib/engine.py, add its name here in the
 # SAME commit.
-EVIDENCE_FUNCS = ["funded_daily_cap", "funded_premium_band", "_landed_usd", "load_goal"]
+EVIDENCE_FUNCS = ["funded_daily_cap", "funded_premium_band", "_landed_usd", "load_goal",
+                  "log_session_end"]
 
 
 def _read_capped(rel):

@@ -177,6 +177,9 @@ def main():
     ap.add_argument("--brief", action="store_true")
     ap.add_argument("--snapshot", action="store_true")
     ap.add_argument("--score", action="store_true")
+    ap.add_argument("--close", action="store_true",
+                    help="log session_end for the day (fills counted from journal)")
+    ap.add_argument("--notes", default="", help="free-text note for --close")
     ap.add_argument("--supervise", action="store_true",
                     help="end-of-day contradiction audit via MiniMax M3 (advisory only)")
     ap.add_argument("--shot", nargs="?", const="", help="named region, or use --window/--full")
@@ -192,6 +195,12 @@ def main():
         cmd_snapshot(args.asof); ran = True
     if args.score:
         cmd_score(); ran = True
+    if args.close:
+        from lib import engine
+        rec = engine.log_session_end(asof=args.asof, notes=args.notes)
+        print(f"session_end {rec['asof']}: fills={rec['fills_count']}"
+              f"{'  notes: ' + rec['notes'] if rec['notes'] else ''}")
+        ran = True
     if args.supervise:
         cmd_supervise(args.asof); ran = True
     if args.brief:

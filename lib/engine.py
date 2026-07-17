@@ -522,6 +522,44 @@ def log_trade(entry: dict) -> Path:
     return JOURNAL_PATH
 
 
+def log_session_end(asof: str | None = None, notes: str = "",
+                    gates_evaluated: int = 0, gates_fired: int = 0) -> dict:
+    """[Friday loop 2026-07-17, S2 = 07-13 S1] Append a session_end event so
+    a no-trade day is distinguishable from a day the system never ran.
+    fills_count is COUNTED from the journal itself (rows for this asof with
+    a pnl_usd or ts_exit, or event=="fill") — never asserted from memory.
+    gates_* default 0: the terminal engine is OFF and manual-desk gate
+    evaluations are not machine-logged; honest zeros beat invented counts.
+    Once per asof — re-runs return the existing record instead of duplicating.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("America/New_York"))
+    asof = asof or now.date().isoformat()
+    fills = 0
+    if JOURNAL_PATH.exists():
+        for line in JOURNAL_PATH.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if row.get("event") == "session_end" and row.get("asof") == asof:
+                return row  # already closed this day — don't spam
+            is_fill = (row.get("event") == "fill" or
+                       row.get("pnl_usd") is not None or
+                       row.get("ts_exit") is not None)
+            if is_fill and (row.get("asof") == asof or
+                            str(row.get("ts", "")).startswith(asof)):
+                fills += 1
+    record = {"event": "session_end", "asof": asof, "ts": now.isoformat(),
+              "fills_count": fills, "gates_evaluated": gates_evaluated,
+              "gates_fired": gates_fired, "notes": notes}
+    JOURNAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(JOURNAL_PATH, "a") as f:
+        f.write(json.dumps(record) + "\n")
+    return record
+
+
 def make_trade_entry(
     ticker: str,
     direction: str,
