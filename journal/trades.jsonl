@@ -4,3 +4,8 @@
 {"event": "session_start", "asof": "2026-07-09", "ts": "2026-07-09T08:53:55.798887-04:00", "today_cap": 1}
 {"event": "session_start", "asof": "2026-07-10", "ts": "2026-07-10T08:57:27.187441-04:00", "today_cap": 1}
 {"event": "tender_outcome", "asof": "2026-07-10", "ts": "2026-07-10T21:18:55-04:00", "outcome": "extended", "new_expiration": "2026-07-16", "source": "SEC EDGAR acc 0001140361-26-028238"}
+{"event": "session_start", "asof": "2026-07-13", "ts": "2026-07-13T08:08:13.216159-04:00", "today_cap": 1}
+{"event": "session_start", "asof": "2026-07-14", "ts": "2026-07-14T09:08:32.919302-04:00", "today_cap": 1}
+{"event": "session_start", "asof": "2026-07-15", "ts": "2026-07-15T08:14:55.068975-04:00", "today_cap": 1}
+{"event": "session_start", "asof": "2026-07-16", "ts": "2026-07-16T08:40:21.577868-04:00", "today_cap": 1}
+{"event": "session_end", "asof": "2026-07-17", "ts": "2026-07-17T19:36:36.184894-04:00", "fills_count": 0, "gates_evaluated": 0, "gates_fired": 0, "notes": "week 1 flat, gated"}
