@@ -269,11 +269,15 @@ def save_state(ids):
     STATE_FILE.write_text(json.dumps({"notified": list(ids)[-5000:]}))
 
 
-def notify_new(flow, dp, notify_flow_min, notify_dp_min):
-    """Push ntfy for NEW items above notify thresholds. Returns (count, err)."""
+def notify_new(flow, dp, notify_flow_min, notify_dp_min, sweeps_only=True):
+    """Push ntfy for NEW items above notify thresholds. Returns (count, err).
+    sweeps_only: pro triage — the table shows all flow, the phone only rings
+    for sweeps (multi-exchange aggression). --notify-all-flow disables it."""
     seen = load_state()
     sent, err = 0, None
     for a in flow:
+        if sweeps_only and not a["sweep"]:
+            continue
         if a["premium"] >= notify_flow_min and a["id"] not in seen:
             side = "ask-lean" if a["ask_prem"] > a["bid_prem"] else "bid-lean" if a["bid_prem"] > a["ask_prem"] else ""
             e = ntfy_push(
@@ -329,8 +333,9 @@ def render(flow, flow_err, dp, dp_err, earn, earn_err, args, notified):
     h.append(f"<h1>🐋 Unusual Whales Dashboard</h1><div class='meta'>Pulled {now.strftime('%A %Y-%m-%d %H:%M:%S')} ET"
              f" · all rows [TOOL] live this pull · ntfy sent this run: {notified}</div>")
 
-    h.append(f"<h2>① FLOW ALERTS — sweeps ≥ {money(args.flow_min)}"
-             f"<span class='pill'>notify ≥ {money(args.notify_flow_min)}</span></h2>")
+    notify_scope = "all flow" if args.notify_all_flow else "SWEEPS only"
+    h.append(f"<h2>① FLOW ALERTS — ≥ {money(args.flow_min)}"
+             f"<span class='pill'>notify: {notify_scope} ≥ {money(args.notify_flow_min)}</span></h2>")
     if flow_err:
         h.append(f"<div class='err'>FLOW SECTION FAILED — no data shown (not partial): {esc(flow_err)}</div>")
     elif not flow:
@@ -390,7 +395,8 @@ def run_once(args, token, opened):
 
     notified, ntfy_err = (0, None)
     if not args.no_notify:
-        notified, ntfy_err = notify_new(flow, dp, args.notify_flow_min, args.notify_dp_min)
+        notified, ntfy_err = notify_new(flow, dp, args.notify_flow_min, args.notify_dp_min,
+                                        sweeps_only=not args.notify_all_flow)
 
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     OUT_HTML.write_text(render(flow, flow_err, dp, dp_err, earn, earn_err, args, notified))
@@ -416,6 +422,8 @@ def main():
     ap.add_argument("--notify-dp-min", type=float, default=20_000_000, help="ntfy threshold for dark pool (default 20M)")
     ap.add_argument("--tickers", default="", help="comma list to filter flow alerts (default: whole market)")
     ap.add_argument("--earnings-max", type=int, default=12, help="max earnings names to enrich (default 12)")
+    ap.add_argument("--notify-all-flow", action="store_true",
+                    help="notify on ALL flow >= threshold, not just sweeps (default: sweeps only)")
     ap.add_argument("--no-earnings", action="store_true")
     ap.add_argument("--no-notify", action="store_true")
     ap.add_argument("--no-open", action="store_true")
