@@ -28,3 +28,7 @@ edgar-synth/*.db
 edgar-synth/*.sqlite*
 edgar-synth/data/*.db
 edgar-synth/data/*.sqlite*
+
+# uw_dashboard run artifacts — regenerated every run, never committed
+data/uw_dashboard.html
+data/uw_dashboard_state.json
