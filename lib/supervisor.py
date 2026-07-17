@@ -225,23 +225,35 @@ def run(asof=None):
 
     payload = build_payload(asof)
     import requests
-    resp = requests.post(
-        url,
-        headers={"Authorization": f"Bearer {key}"},
-        json={
-            "model": model,
-            "temperature": 0.2,
-            # M3 is a REASONING model: it thinks in a visible <think> block
-            # before writing. 3000 hit the cap mid-thought and produced no
-            # report (observed first live run, Sat 2026-07-04) — leave room.
-            "max_tokens": 24000,
-            "messages": [
-                {"role": "system", "content": _system_prompt()},
-                {"role": "user", "content": payload},
-            ],
-        },
-        timeout=180,
-    )
+    body_json = {
+        "model": model,
+        "temperature": 0.2,
+        # M3 is a REASONING model: it thinks in a visible <think> block
+        # before writing. 3000 hit the cap mid-thought and produced no
+        # report (observed first live run, Sat 2026-07-04) — leave room.
+        "max_tokens": 24000,
+        "messages": [
+            {"role": "system", "content": _system_prompt()},
+            {"role": "user", "content": payload},
+        ],
+    }
+    # M3 reasoning runs can exceed 180s; observed live ReadTimeout Fri
+    # 2026-07-17. 300s + ONE retry. Advisory read-only call — a retry can
+    # at worst produce a duplicate memo, so this does not violate the
+    # no-blind-retries order rule (that rule is for order placement).
+    resp = None
+    for attempt in (1, 2):
+        try:
+            resp = requests.post(url, headers={"Authorization": f"Bearer {key}"},
+                                 json=body_json, timeout=300)
+            break
+        except requests.exceptions.Timeout:
+            if attempt == 2:
+                sys.exit(f"MiniMax timed out twice (300s each) at {url}. "
+                         "Their API is slow/down right now — re-run "
+                         "`python3 run.py --supervise` later. Nothing local "
+                         "is broken; no memo was written.")
+            print("  … MiniMax read timeout at 300s — retrying once")
     if resp.status_code != 200:
         sys.exit(f"API error {resp.status_code} from {url}: {resp.text[:500]}")
     body = resp.json()
