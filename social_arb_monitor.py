@@ -61,6 +61,12 @@ KEYWORD_BATCHES = [
 
 VELOCITY_ALERT_THRESHOLD = 1.50
 
+# Terms whose historical average sits below this floor produce meaningless
+# ratios (one index point of movement = a huge fake velocity swing, e.g.
+# Celsius 2.8→1.0 printing "0.35x" on 2026-07-17). Those rows print with a
+# [NOISE] tag and are excluded from firing alerts.
+MIN_HIST_AVG = 5.0
+
 # Backoff tuning: Google 429s aggressively on back-to-back payloads.
 INTER_BATCH_SLEEP = 60          # seconds between successful batches
 MAX_RETRIES = 3                 # retries per batch on failure
@@ -84,6 +90,10 @@ def scan_batch(pytrends, keyword_map):
         recent_velocity = df[kw].iloc[-3:].mean()
 
         velocity_ratio = recent_velocity / max(historical_avg, 1)
+
+        if historical_avg < MIN_HIST_AVG:
+            print(f"• {kw:<20} -> {keyword_map[kw]:<38} | Hist Avg: {historical_avg:.1f} | Recent: {recent_velocity:.1f} | [NOISE] base <{MIN_HIST_AVG:.0f} — ratio not meaningful")
+            continue
 
         print(f"• {kw:<20} -> {keyword_map[kw]:<38} | Hist Avg: {historical_avg:.1f} | Recent: {recent_velocity:.1f} | Velocity: {velocity_ratio:.2f}x")
 
