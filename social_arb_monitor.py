@@ -44,7 +44,7 @@ KEYWORD_BATCHES = [
     # Batch 5: durable macro themes via consumer-intent phrasing
     {
         "electric bill too high": "VST/CEG/NRG (grid tightness, real-economy)",
-        "nuclear energy stocks": "CCJ/SMR/OKLO (retail wave detector)",
+        "nuclear energy": "CCJ/SMR/OKLO (theme attention gauge)",  # swapped from "nuclear energy stocks" 2026-07-17 — 2.9 hist avg fell under the [NOISE] floor; broad term has a real base
         "car insurance too expensive": "PGR/ALL (pricing-power signal)",
         "humanoid robot": "TSLA/robot supply chain (attention gauge)",
         "clothes too big": "GLP-1 2nd-order: apparel refresh, BRBR",
