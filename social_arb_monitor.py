@@ -1,7 +1,11 @@
+import json
+import os
 import sys
 import time
+import urllib.request
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
+from pathlib import Path
 from pytrends.request import TrendReq
 
 # Consumer-INTENT keywords (what buyers type, not tickers) -> mapped ticker.
@@ -67,6 +71,37 @@ VELOCITY_ALERT_THRESHOLD = 1.50
 # [NOISE] tag and are excluded from firing alerts.
 MIN_HIST_AVG = 5.0
 
+# ntfy push on 🔥 alerts — same NTFY_TOPIC env var as uw_dashboard.py
+# (~/.zshrc, never in repo). Unset topic = terminal-only, no error.
+# Dedupe: one push per (keyword, day) via state file, so re-running the
+# scan the same day doesn't re-ping the phone.
+NTFY_STATE = Path(__file__).resolve().parent / "data" / "social_arb_ntfy_state.json"
+
+
+def _ntfy_alert(kw, mapping, ratio):
+    topic = os.environ.get("NTFY_TOPIC", "")
+    if not topic:
+        return
+    key = f"{date.today().isoformat()}:{kw}"
+    try:
+        seen = json.loads(NTFY_STATE.read_text()).get("sent", [])
+    except Exception:
+        seen = []
+    if key in seen:
+        return
+    server = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
+    req = urllib.request.Request(
+        f"{server}/{topic}",
+        data=f"'{kw}' searches at {ratio:.2f}x baseline → {mapping}. Ground-truth before any position.".encode(),
+        headers={"Title": f"SOCIAL ARB {kw} {ratio:.2f}x", "Tags": "fire,chart_with_upwards_trend"})
+    try:
+        with urllib.request.urlopen(req, timeout=15):
+            pass
+        NTFY_STATE.parent.mkdir(parents=True, exist_ok=True)
+        NTFY_STATE.write_text(json.dumps({"sent": (seen + [key])[-500:]}))
+    except Exception as e:
+        print(f"  [WARN] ntfy push failed: {e}")
+
 # Backoff tuning: Google 429s aggressively on back-to-back payloads.
 INTER_BATCH_SLEEP = 60          # seconds between successful batches
 MAX_RETRIES = 3                 # retries per batch on failure
@@ -100,6 +135,7 @@ def scan_batch(pytrends, keyword_map):
         if velocity_ratio > VELOCITY_ALERT_THRESHOLD:
             print(f"  [🔥 SOCIAL ARB ALERT] Consumer divergence on '{kw}' (maps to {keyword_map[kw]})")
             print(f"  [ACTION] Ground-truth it: crawl reviews/reddit sentiment before any position.")
+            _ntfy_alert(kw, keyword_map[kw], velocity_ratio)
 
 
 def run_social_arb_scan():

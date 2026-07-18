@@ -32,3 +32,6 @@ edgar-synth/data/*.sqlite*
 # uw_dashboard run artifacts — regenerated every run, never committed
 data/uw_dashboard.html
 data/uw_dashboard_state.json
+
+# social_arb ntfy dedupe state — regenerated, never committed
+data/social_arb_ntfy_state.json
