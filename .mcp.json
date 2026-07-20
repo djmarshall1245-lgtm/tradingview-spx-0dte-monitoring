@@ -9,9 +9,8 @@
       "args": ["/Users/andrereynolds/tradingview-mcp-jackson/src/server.js"]
     },
     "unusualwhales": {
-      "type": "http",
-      "url": "https://api.unusualwhales.com/api/mcp",
-      "headers": { "Authorization": "Bearer ${UW_MCP_TOKEN}" }
+      "command": "sh",
+      "args": ["-c", "npx -y mcp-remote https://api.unusualwhales.com/api/mcp --header \"Authorization: Bearer $UW_MCP_TOKEN\""]
     },
     "gemini": {
       "command": "npx",
