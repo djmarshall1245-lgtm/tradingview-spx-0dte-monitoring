@@ -22,6 +22,11 @@
         "ALPACA_API_SECRET": "${ALPACA_API_SECRET}",
         "ALPACA_TOOLSETS": "data"
       }
+    },
+    "unusualwhales": {
+      "type": "http",
+      "url": "https://api.unusualwhales.com/api/mcp",
+      "headers": { "Authorization": "Bearer ${UW_MCP_TOKEN}" }
     }
   }
 }
