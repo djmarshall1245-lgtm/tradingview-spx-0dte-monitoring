@@ -4,6 +4,15 @@
       "command": "node",
       "args": ["/Users/andrereynolds/tradingview-mcp-jackson/src/server.js"]
     },
+    "tradingview-mcp": {
+      "command": "node",
+      "args": ["/Users/andrereynolds/tradingview-mcp-jackson/src/server.js"]
+    },
+    "unusualwhales": {
+      "type": "http",
+      "url": "https://api.unusualwhales.com/api/mcp",
+      "headers": { "Authorization": "Bearer ${UW_MCP_TOKEN}" }
+    },
     "gemini": {
       "command": "npx",
       "args": ["-y", "gemini-mcp-tool"],
