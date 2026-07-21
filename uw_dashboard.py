@@ -187,11 +187,30 @@ def fetch_darkpool(token, min_prem):
     return out, None
 
 
+# A put/call ratio computed on a handful of contracts is noise, not signal
+# (WTFC printed 13.0 on 14 total contracts on 2026-07-20). Below this total
+# option volume the ratio is suppressed to [thin].
+MIN_OPT_VOL_FOR_RATIO = 500
+
+
 def next_trading_day(d):
     nd = d + timedelta(days=1)
     while nd.weekday() >= 5:  # Sat/Sun; holidays not handled — noted on dashboard
         nd += timedelta(days=1)
     return nd
+
+
+def debug_earn(token, ticker):
+    """One-shot schema probe: dump the raw iv-rank + options-volume JSON for
+    ONE ticker so the IV-rank field can be mapped exactly (it renders '?'
+    because the field name isn't yet known). Run on a machine that reaches UW."""
+    t = ticker.upper()
+    for path in (f"/api/stock/{t}/iv-rank",
+                 f"/api/stock/{t}/volatility/stats",
+                 f"/api/stock/{t}/options-volume"):
+        body, err = api_get(path, token, {"limit": 1})
+        print(f"\n=== {path} ===")
+        print(f"ERROR: {err}" if err else json.dumps(body, indent=2)[:1500])
 
 
 def fetch_earnings(token, max_names):
@@ -225,19 +244,28 @@ def fetch_earnings(token, max_names):
         if iv_err:  # fallback endpoint name
             iv_body, iv_err = api_get(f"/api/stock/{t}/volatility/stats", token)
         iv_rows = rows_of(iv_body)
-        r["iv_rank"] = g(iv_rows[0], "iv_rank", "iv_rank_30d", "ivr", default="?") if iv_rows else "?"
+        # broadened field candidates — the exact one is confirmed via
+        # `python3 uw_dashboard.py --debug-earn TICKER` (dumps raw JSON).
+        r["iv_rank"] = g(iv_rows[0], "iv_rank", "iv_rank_30d", "iv_rank_current",
+                         "iv_percentile", "ivr", "rank", default="?") if iv_rows else "?"
         ov_body, ov_err = api_get(f"/api/stock/{t}/options-volume", token, {"limit": 1})
         ov = rows_of(ov_body)
         if ov:
             cp, pp = fnum(g(ov[0], "call_premium")), fnum(g(ov[0], "put_premium"))
             cv, pv = fnum(g(ov[0], "call_volume")), fnum(g(ov[0], "put_volume"))
             r["call_prem"], r["put_prem"] = cp, pp
-            r["pc_ratio"] = round(pv / cv, 2) if cv else "?"
             r["opt_vol"] = int(cv + pv)
+            # thin-tape guard: a P/C ratio on a handful of contracts is noise
+            # (WTFC 13.0 on 14 contracts on 2026-07-20). Only show it when the
+            # chain has real participation.
+            r["pc_ratio"] = round(pv / cv, 2) if (cv and r["opt_vol"] >= MIN_OPT_VOL_FOR_RATIO) else "[thin]"
         else:
             r["call_prem"] = r["put_prem"] = 0
-            r["pc_ratio"] = r["opt_vol"] = "?"
+            r["pc_ratio"] = "[thin]"
+            r["opt_vol"] = 0
         r["err"] = "; ".join(x for x in (iv_err, ov_err) if x) or ""
+    # meaningful names (real options interest) first; dead 0-volume rows sink
+    capped.sort(key=lambda r: r.get("opt_vol") or 0, reverse=True)
     return capped, ("; ".join(errs) or None)
 
 # ----------------------------------------------------------------------- ntfy
@@ -366,7 +394,9 @@ def render(flow, flow_err, dp, dp_err, earn, earn_err, args, notified):
                      f"<td>{esc(p['nbbo_bid'])} / {esc(p['nbbo_ask'])}</td></tr>")
         h.append("</table>")
 
-    h.append("<h2>③ EARNINGS — today AMC + next-trading-day BMO <span class='pill'>US holidays not skipped — eyeball the date</span></h2>")
+    h.append("<h2>③ EARNINGS — today AMC + next-trading-day BMO "
+             "<span class='pill'>sorted by volume · P/C hidden below "
+             f"{MIN_OPT_VOL_FOR_RATIO} contracts · holidays not skipped</span></h2>")
     if earn_err:
         h.append(f"<div class='err'>EARNINGS PULL PARTIAL/FAILED: {esc(earn_err)}</div>")
     if earn:
@@ -374,10 +404,16 @@ def render(flow, flow_err, dp, dp_err, earn, earn_err, args, notified):
                  "<th>P/C ratio</th><th>Call prem</th><th>Put prem</th><th>Sector</th></tr>")
         for r in earn:
             note = f" <span class='pill'>{esc(r['err'])}</span>" if r.get("err") else ""
+            ov = r.get("opt_vol") or 0
+            pc = r["pc_ratio"]
+            pc_cell = f"<span class='meta'>{esc(pc)}</span>" if pc == "[thin]" else esc(pc)
             h.append(f"<tr><td><b>{esc(r['ticker'])}</b>{note}</td><td>{esc(r['when'])}</td>"
-                     f"<td>{esc(r['iv_rank'])}</td><td>{esc(r['opt_vol'])}</td><td>{esc(r['pc_ratio'])}</td>"
+                     f"<td>{esc(r['iv_rank'])}</td><td>{ov:,}</td><td>{pc_cell}</td>"
                      f"<td>{money(r['call_prem'])}</td><td>{money(r['put_prem'])}</td><td>{esc(r['sector'])}</td></tr>")
         h.append("</table>")
+        if any(r["iv_rank"] == "?" for r in earn):
+            h.append("<div class='meta'>IV rank shows ? — UW field name not yet mapped. "
+                     "Run <code>python3 uw_dashboard.py --debug-earn AGNC</code> and share the output to fix it.</div>")
     elif not earn_err:
         h.append("<div class='meta'>No reporters found for the window.</div>")
 
@@ -429,11 +465,16 @@ def main():
     ap.add_argument("--no-open", action="store_true")
     ap.add_argument("--watch", type=int, default=0, metavar="SECONDS",
                     help="foreground re-pull loop (min 60s, Ctrl-C to stop). NOT a scheduler.")
+    ap.add_argument("--debug-earn", metavar="TICKER", default="",
+                    help="dump raw UW iv-rank/options-volume JSON for one ticker, then exit")
     args = ap.parse_args()
 
     token = os.environ.get("UW_API_TOKEN", "")
     if not token:
         sys.exit("UW_API_TOKEN not set. Add to ~/.zshrc:  export UW_API_TOKEN=\"...\"  (never in the repo)")
+    if args.debug_earn:
+        debug_earn(token, args.debug_earn)
+        return
     if not os.environ.get("NTFY_TOPIC") and not args.no_notify:
         print("NOTE: NTFY_TOPIC not set — running without notifications (dashboard only).")
         args.no_notify = True
