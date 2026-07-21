@@ -237,34 +237,47 @@ def fetch_earnings(token, max_names):
             seen.add(r["ticker"])
             capped.append(r)
     capped = capped[:max_names]
-    # enrich: IV rank + options volume (2 requests per name)
+    # enrich: IV rank + options volume (2 requests per name). Field names
+    # confirmed via --debug-earn AGNC on 2026-07-21 (live UW schema).
     for r in capped:
         t = r["ticker"]
-        iv_body, iv_err = api_get(f"/api/stock/{t}/iv-rank", token, {"limit": 1})
-        if iv_err:  # fallback endpoint name
-            iv_body, iv_err = api_get(f"/api/stock/{t}/volatility/stats", token)
+        # /iv-rank returns daily rows ASCENDING by date — newest is LAST, field
+        # iv_rank_1y. Fallback: /volatility/stats (single dict, field iv_rank).
+        iv_body, iv_err = api_get(f"/api/stock/{t}/iv-rank", token)
         iv_rows = rows_of(iv_body)
-        # broadened field candidates — the exact one is confirmed via
-        # `python3 uw_dashboard.py --debug-earn TICKER` (dumps raw JSON).
-        r["iv_rank"] = g(iv_rows[0], "iv_rank", "iv_rank_30d", "iv_rank_current",
-                         "iv_percentile", "ivr", "rank", default="?") if iv_rows else "?"
-        ov_body, ov_err = api_get(f"/api/stock/{t}/options-volume", token, {"limit": 1})
+        ivr = g(iv_rows[-1], "iv_rank_1y", "iv_rank", default=None) if iv_rows else None
+        if ivr is None:
+            vs_body, vs_err = api_get(f"/api/stock/{t}/volatility/stats", token)
+            vs = rows_of(vs_body)
+            ivr = g(vs[0], "iv_rank", default=None) if vs else None
+            iv_err = iv_err or vs_err
+        r["iv_rank"] = round(fnum(ivr)) if ivr is not None else "?"
+
+        ov_body, ov_err = api_get(f"/api/stock/{t}/options-volume", token)
         ov = rows_of(ov_body)
         if ov:
-            cp, pp = fnum(g(ov[0], "call_premium")), fnum(g(ov[0], "put_premium"))
-            cv, pv = fnum(g(ov[0], "call_volume")), fnum(g(ov[0], "put_volume"))
+            row = ov[0]
+            cp, pp = fnum(g(row, "call_premium")), fnum(g(row, "put_premium"))
+            cv, pv = fnum(g(row, "call_volume")), fnum(g(row, "put_volume"))
             r["call_prem"], r["put_prem"] = cp, pp
-            r["opt_vol"] = int(cv + pv)
-            # thin-tape guard: a P/C ratio on a handful of contracts is noise
-            # (WTFC 13.0 on 14 contracts on 2026-07-20). Only show it when the
-            # chain has real participation.
-            r["pc_ratio"] = round(pv / cv, 2) if (cv and r["opt_vol"] >= MIN_OPT_VOL_FOR_RATIO) else "[thin]"
+            # LIQUIDITY = 30-day avg total, STABLE regardless of pull time.
+            # (Today's live volume is 0 pre-market — sorting on it made the
+            # table swing by pull time. AGNC 07-21 probe: today 0, 30d avg ~24k.)
+            avg_vol = fnum(g(row, "avg_30_day_call_volume")) + fnum(g(row, "avg_30_day_put_volume"))
+            r["opt_vol"] = int(avg_vol)
+            today_vol = cv + pv
+            if cv and today_vol >= MIN_OPT_VOL_FOR_RATIO:
+                r["pc_ratio"] = round(pv / cv, 2)              # today's real lean
+            elif avg_vol >= MIN_OPT_VOL_FOR_RATIO:
+                r["pc_ratio"] = "[pre]"                        # liquid name, today's flow not in yet
+            else:
+                r["pc_ratio"] = "[thin]"                       # genuinely illiquid options
         else:
             r["call_prem"] = r["put_prem"] = 0
             r["pc_ratio"] = "[thin]"
             r["opt_vol"] = 0
         r["err"] = "; ".join(x for x in (iv_err, ov_err) if x) or ""
-    # meaningful names (real options interest) first; dead 0-volume rows sink
+    # most-liquid options (30d avg) first; illiquid names sink
     capped.sort(key=lambda r: r.get("opt_vol") or 0, reverse=True)
     return capped, ("; ".join(errs) or None)
 
@@ -395,25 +408,27 @@ def render(flow, flow_err, dp, dp_err, earn, earn_err, args, notified):
         h.append("</table>")
 
     h.append("<h2>③ EARNINGS — today AMC + next-trading-day BMO "
-             "<span class='pill'>sorted by volume · P/C hidden below "
-             f"{MIN_OPT_VOL_FOR_RATIO} contracts · holidays not skipped</span></h2>")
+             "<span class='pill'>sorted by 30d avg vol · P/C [pre]=today's flow not in yet, "
+             "[thin]=illiquid · holidays not skipped</span></h2>")
     if earn_err:
         h.append(f"<div class='err'>EARNINGS PULL PARTIAL/FAILED: {esc(earn_err)}</div>")
     if earn:
-        h.append("<table><tr><th>Ticker</th><th>Reports</th><th>IV rank</th><th>Opt volume</th>"
+        h.append("<table><tr><th>Ticker</th><th>Reports</th><th>IV rank</th><th>Avg vol (30d)</th>"
                  "<th>P/C ratio</th><th>Call prem</th><th>Put prem</th><th>Sector</th></tr>")
         for r in earn:
             note = f" <span class='pill'>{esc(r['err'])}</span>" if r.get("err") else ""
             ov = r.get("opt_vol") or 0
-            pc = r["pc_ratio"]
-            pc_cell = f"<span class='meta'>{esc(pc)}</span>" if pc == "[thin]" else esc(pc)
+            pc = str(r["pc_ratio"])
+            pc_cell = f"<span class='meta'>{esc(pc)}</span>" if pc.startswith("[") else esc(pc)
+            ivr = r["iv_rank"]
+            iv_cell = esc(ivr) if ivr == "?" else f"{esc(ivr)}"
             h.append(f"<tr><td><b>{esc(r['ticker'])}</b>{note}</td><td>{esc(r['when'])}</td>"
-                     f"<td>{esc(r['iv_rank'])}</td><td>{ov:,}</td><td>{pc_cell}</td>"
+                     f"<td>{iv_cell}</td><td>{ov:,}</td><td>{pc_cell}</td>"
                      f"<td>{money(r['call_prem'])}</td><td>{money(r['put_prem'])}</td><td>{esc(r['sector'])}</td></tr>")
         h.append("</table>")
         if any(r["iv_rank"] == "?" for r in earn):
-            h.append("<div class='meta'>IV rank shows ? — UW field name not yet mapped. "
-                     "Run <code>python3 uw_dashboard.py --debug-earn AGNC</code> and share the output to fix it.</div>")
+            h.append("<div class='meta'>IV rank shows ? — UW returned no volatility data for that name "
+                     "(often a small-cap with no listed IV history). Not a bug.</div>")
     elif not earn_err:
         h.append("<div class='meta'>No reporters found for the window.</div>")
 
