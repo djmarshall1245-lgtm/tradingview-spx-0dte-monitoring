@@ -216,7 +216,10 @@ def debug_earn(token, ticker):
 def fetch_earnings(token, max_names):
     today = datetime.now(ET).date()
     nxt = next_trading_day(today)
-    reporters, errs = [], []
+    # Collect each window into its OWN bucket so the cap can be split fairly —
+    # combining then slicing [:max_names] dropped every BMO name whenever today
+    # had >=max_names AMC reporters (observed 2026-07-21: 12 AMC, 0 BMO shown).
+    buckets, errs = [], []
     for path, params, label in (
         ("/api/earnings/afterhours", {"date": today.isoformat(), "limit": 50}, f"AMC {today.isoformat()}"),
         ("/api/earnings/premarket", {"date": nxt.isoformat(), "limit": 50}, f"BMO {nxt.isoformat()}"),
@@ -224,19 +227,26 @@ def fetch_earnings(token, max_names):
         body, err = api_get(path, token, params)
         if err:
             errs.append(err)
+            buckets.append([])
             continue
+        bucket = []
         for e in rows_of(body):
             tick = str(g(e, "symbol", "ticker", default="")).upper()
             if tick:
-                reporters.append({"ticker": tick, "when": label,
-                                  "sector": g(e, "sector", default="")})
-    # de-dup, cap request fan-out
+                bucket.append({"ticker": tick, "when": label,
+                               "sector": g(e, "sector", default="")})
+        buckets.append(bucket)
+    # Split the budget across the two windows; if one is short, the other fills
+    # the remainder — so a light BMO day still shows all today's AMC names.
+    amc, bmo = buckets[0], buckets[1]
+    half = max_names // 2
+    amc_keep = amc[:half] if len(bmo) >= max_names - half else amc[:max_names - min(len(bmo), max_names - half)]
+    bmo_keep = bmo[:max_names - len(amc_keep)]
     seen, capped = set(), []
-    for r in reporters:
+    for r in amc_keep + bmo_keep:
         if r["ticker"] not in seen:
             seen.add(r["ticker"])
             capped.append(r)
-    capped = capped[:max_names]
     # enrich: IV rank + options volume (2 requests per name). Field names
     # confirmed via --debug-earn AGNC on 2026-07-21 (live UW schema).
     for r in capped:
@@ -472,7 +482,7 @@ def main():
     ap.add_argument("--notify-flow-min", type=float, default=1_000_000, help="ntfy threshold for flow (default 1M)")
     ap.add_argument("--notify-dp-min", type=float, default=20_000_000, help="ntfy threshold for dark pool (default 20M)")
     ap.add_argument("--tickers", default="", help="comma list to filter flow alerts (default: whole market)")
-    ap.add_argument("--earnings-max", type=int, default=12, help="max earnings names to enrich (default 12)")
+    ap.add_argument("--earnings-max", type=int, default=16, help="max earnings names to enrich, split across AMC/BMO (default 16)")
     ap.add_argument("--notify-all-flow", action="store_true",
                     help="notify on ALL flow >= threshold, not just sweeps (default: sweeps only)")
     ap.add_argument("--no-earnings", action="store_true")
