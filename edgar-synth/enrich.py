@@ -1,8 +1,12 @@
-"""Enrichment: FMP (universe, quotes) + Unusual Whales (short data, flow alerts).
+"""Enrichment: Unusual Whales (universe + short + flow) + Alpaca (quotes).
 
 Verified endpoints/fields:
-  FMP  /stable/company-screener  -> symbol, companyName, marketCap, price, volume
-  FMP  /stable/quote             -> symbol, price, timestamp
+  UW   /api/screener/stocks      -> ticker, full_name, marketcap (str),
+                                    stock_volume, close (str), sector, is_index,
+                                    issue_type. Server filters: min_marketcap,
+                                    max_marketcap, min_volume, limit.
+                                    (replaced FMP company-screener 2026-07-22)
+  Alpaca /v2/stocks/{t}/trades/latest -> last trade price (see quote())
   UW   /api/shorts/{t}/data      -> fee_rate (string!), short_shares_available
   UW   /api/option-trades/flow-alerts -> ticker, type, total_premium (string!),
                                          total_size, volume_oi_ratio, created_at
@@ -17,7 +21,6 @@ from pathlib import Path
 import requests
 
 log = logging.getLogger("enrich")
-FMP_BASE = "https://financialmodelingprep.com/stable"
 UW_BASE = "https://api.unusualwhales.com"
 UNIVERSE_CACHE = Path("universe.json")
 
@@ -29,70 +32,94 @@ def _to_float(v, default=0.0):
         return default
 
 
-def _fmp_key():
-    return os.environ.get("FMP_API_KEY", "")
-
-
 def _alpaca_headers():
     return {"APCA-API-KEY-ID": os.environ.get("ALPACA_API_KEY", ""),
             "APCA-API-SECRET-KEY": os.environ.get("ALPACA_API_SECRET", "")}
 
 
 def _uw_token():
+    """~/.uw_credentials first, then UW_API_TOKEN / UW_MCP_TOKEN env vars.
+    The env fallback means a stale/missing credentials file can't silently
+    blind edgar-synth when the working token is already in the shell (the
+    2026-07-22 failure mode)."""
     p = Path.home() / ".uw_credentials"
-    if not p.exists():
-        return ""
-    for line in p.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if "=" in line:
-            k, v = line.split("=", 1)
-            if "TOKEN" in k.upper() or "KEY" in k.upper():
-                return v.strip().strip('"')
-        else:
-            return line  # raw token on its own line
-    return ""
+    if p.exists():
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                k, v = line.split("=", 1)
+                if "TOKEN" in k.upper() or "KEY" in k.upper():
+                    return v.strip().strip('"')
+            else:
+                return line  # raw token on its own line
+    return os.environ.get("UW_API_TOKEN") or os.environ.get("UW_MCP_TOKEN") or ""
 
 
 # ---- universe ---------------------------------------------------------------
+def _parse_screener(rows):
+    """UW /api/screener/stocks rows -> {ticker: {companyName, marketCap, price,
+    volume}}. Drops indices, ETFs and funds (we trade single-name equities)."""
+    universe = {}
+    for row in rows:
+        if row.get("is_index"):
+            continue
+        itype = str(row.get("issue_type", "")).lower()
+        if "etf" in itype or "fund" in itype:
+            continue
+        t = str(row.get("ticker", "")).upper()
+        if not t:
+            continue
+        universe[t] = {
+            "companyName": row.get("full_name", ""),
+            "marketCap": _to_float(row.get("marketcap")),
+            "price": _to_float(row.get("close")),
+            "volume": _to_float(row.get("stock_volume")),
+        }
+    return universe
+
+
 def load_universe(cfg):
     """{ticker: {companyName, marketCap, price, volume}} — cached to disk daily.
 
-    No FMP_API_KEY (FMP is MCP-only on this machine): use the cache at any
-    age. Refresh it via a Claude session (FMP MCP screener -> universe.json).
+    Source: Unusual Whales /api/screener/stocks (replaced FMP 2026-07-22).
+    Refresh needs a UW token (~/.uw_credentials or UW_API_TOKEN env). No token
+    and stale cache -> use the cache; no token and no cache -> hard stop.
     """
     u = cfg["universe"]
+    tok = _uw_token()
     if UNIVERSE_CACHE.exists():
         age_h = (time.time() - UNIVERSE_CACHE.stat().st_mtime) / 3600
         if age_h < u.get("refresh_hours", 24):
             return json.loads(UNIVERSE_CACHE.read_text())
-        if not _fmp_key():
-            log.warning("universe.json is %.0fh old and no FMP_API_KEY to refresh "
-                        "— using stale cache. Refresh via Claude (FMP MCP).", age_h)
+        if not tok:
+            log.warning("universe.json is %.0fh old and no UW token to refresh "
+                        "— using stale cache.", age_h)
             return json.loads(UNIVERSE_CACHE.read_text())
-    if not _fmp_key():
-        raise SystemExit("No universe.json and no FMP_API_KEY. Generate universe.json "
-                         "via a Claude session (FMP MCP company screener).")
+    if not tok:
+        raise SystemExit("No universe.json and no UW token (~/.uw_credentials "
+                         "or UW_API_TOKEN env). Cannot build the universe.")
     params = {
-        "marketCapMoreThan": u["market_cap_min"],
-        "marketCapLowerThan": u["market_cap_max"],
-        "volumeMoreThan": u["volume_min"],
-        "country": u.get("country", "US"),
-        "isActivelyTrading": "true", "isEtf": "false", "isFund": "false",
-        "limit": u.get("limit", 3000),
-        "apikey": _fmp_key(),
+        "min_marketcap": int(u["market_cap_min"]),
+        "max_marketcap": int(u["market_cap_max"]),
+        "min_volume": int(u["volume_min"]),
+        "limit": int(u.get("limit", 3000)),
     }
-    r = requests.get(f"{FMP_BASE}/company-screener", params=params, timeout=30)
+    r = requests.get(f"{UW_BASE}/api/screener/stocks", params=params,
+                     headers={"Authorization": f"Bearer {tok}", "Accept": "application/json"},
+                     timeout=30)
     r.raise_for_status()
-    universe = {row["symbol"].upper(): {
-        "companyName": row.get("companyName", ""),
-        "marketCap": row.get("marketCap", 0),
-        "price": row.get("price", 0),
-        "volume": row.get("volume", 0),
-    } for row in r.json()}
-    UNIVERSE_CACHE.write_text(json.dumps(universe))
-    log.info("universe refreshed: %d names", len(universe))
+    rows = r.json().get("data", [])
+    universe = _parse_screener(rows)
+    if universe:
+        UNIVERSE_CACHE.write_text(json.dumps(universe))
+        log.info("universe refreshed via UW: %d names (from %d screener rows)",
+                 len(universe), len(rows))
+    else:
+        log.warning("UW screener returned 0 usable names — keeping existing cache")
+        if UNIVERSE_CACHE.exists():
+            return json.loads(UNIVERSE_CACHE.read_text())
     return universe
 
 
