@@ -7,9 +7,16 @@ sec_user_agent: "Andre Reynolds djmarshall1245@gmail.com"
 poll_interval_sec: 5          # getcurrent feed poll cadence (SEC cap is 10 req/s total; we stay far under)
 feed_timeout_sec: 30          # timeout for SEC feed + document requests (raised from 15 to reduce read timeouts)
 feed_count: 100               # entries per poll
-target_forms: ["8-K", "8-K/A", "SC 13D", "SC 13D/A", "S-3", "424B5", "SC TO-T", "SC 14D9"]
+# [widened 2026-07-22, owner GO] added ownership (13G), registration/IPO (S-1),
+# and M&A/tender/proxy (425, DEFM14A, SC TO-I, SC TO-T/A, SC 14D9/A) forms.
+# Deliberately NOT adding 10-K/10-Q/Form 4 — those are high-volume periodic/
+# insider filings that would flood LLM triage with non-catalyst noise; this
+# system is catalyst-driven, so we widen the CATALYST form family only.
+target_forms: ["8-K", "8-K/A", "SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A",
+               "S-3", "S-1", "S-1/A", "424B5", "425", "DEFM14A",
+               "SC TO-T", "SC TO-T/A", "SC TO-I", "SC 14D9", "SC 14D9/A"]
 # forms scored higher by the rules pass (pre-LLM)
-priority_forms: ["SC 13D", "SC 13D/A", "8-K", "SC TO-T"]
+priority_forms: ["SC 13D", "SC 13D/A", "8-K", "SC TO-T", "SC TO-I", "DEFM14A"]
 
 # operating window, ET (EDGAR accepts 6am-10pm ET weekdays)
 window_start: "06:00"
@@ -17,12 +24,17 @@ window_end: "22:00"
 timezone: "America/New_York"
 
 # --- Universe (refreshed from Unusual Whales screener, commit c136988 2026-07-09) ---
+# [widened 2026-07-22, owner GO] ceiling $2B->$10B (into mid-caps), volume
+# floor 200k->100k (thinner names), limit 3000->5000. NOTE the tradeoff: the
+# system's edge is the under-covered $100M-$2B zone; mid-caps ($2-10B) are more
+# heavily watched, so filings there add less alpha and more triage cost. Floor
+# held at $100M — below that, names are too illiquid to trade regardless.
 universe:
-  market_cap_min: 100000000     # $100M — below this, liquidity is untradeable
-  market_cap_max: 2000000000    # $2B — the under-covered zone
-  volume_min: 200000
+  market_cap_min: 100000000     # $100M — below this, liquidity is untradeable (unchanged)
+  market_cap_max: 10000000000   # $10B — was $2B; widened into mid-caps (edge thins above ~$2B)
+  volume_min: 100000            # was 200000 — admits thinner names
   country: "US"
-  limit: 3000
+  limit: 5000                   # was 3000 — larger universe
   refresh_hours: 24
 
 # --- Phase 2: triage / LLM ---
