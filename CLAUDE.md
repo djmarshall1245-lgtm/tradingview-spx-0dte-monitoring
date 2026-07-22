@@ -242,8 +242,8 @@ SPX 0DTE MORNING BRIEF — <date>  |  pulled <time ET>
       Default window = today's regular session; say "full Globex" for overnight.
    C) PDH / PDL = prior RTH session high / low, reported as their own lines
       (not just baked into the pivot math). Same prior-RTH OHLCV pull that
-      feeds the Voodoo floor pivots — FMP/Alpaca SPY→SPX or ^GSPC, per the
-      "compute Voodoo fresh" rule. List both w/ price:
+      feeds the Voodoo floor pivots — Alpaca SPY→SPX (×10), or yfinance
+      ^GSPC via run.py, per the "compute Voodoo fresh" rule. List both w/ price:
       PDH → nearest resistance overhead | PDL → nearest support below.
    → Is SPX above / below / inside the Fireline–Treeline range?
    → Nearest Voodoo above = target | below = trip-wire
@@ -463,8 +463,10 @@ Charter prompt: `prompts/supervisor.md`. Code: `lib/supervisor.py`.
 
 Separate system living at `~/edgar-synth` on the Mac (built 2026-07-05).
 Watches SEC EDGAR's live filing feed, triages filings via **MiniMax M3**
-(same `MINIMAX_API_KEY` as the supervisor), fills quotes via `FMP_API_KEY`
-(env var in `~/.zshrc`, never in repo). **PAPER-ONLY: alerts + a SQLite
+(same `MINIMAX_API_KEY` as the supervisor). Universe = Unusual Whales
+screener (bucketed across market-cap ranges, ~2400 names $100M–$10B);
+quotes = Alpaca; short/flow = UW. FMP fully removed 2026-07-22 (dead key).
+UW token from `~/.uw_credentials` or `UW_API_TOKEN` env. **PAPER-ONLY: alerts + a SQLite
 paper log — zero execution path.** Manual runs only (`python3 run.py --once`
 from `~/edgar-synth`) — never schedule it; the LaunchAgents post-mortem
 applies to it exactly like everything else.
