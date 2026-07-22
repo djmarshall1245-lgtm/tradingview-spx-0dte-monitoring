@@ -58,15 +58,21 @@ def _uw_token():
 
 
 # ---- universe ---------------------------------------------------------------
-def _parse_screener(rows):
+def _parse_screener(rows, min_volume=0):
     """UW /api/screener/stocks rows -> {ticker: {companyName, marketCap, price,
-    volume}}. Drops indices, ETFs and funds (we trade single-name equities)."""
+    volume}}. Drops indices, ETFs and funds (we trade single-name equities) and
+    names whose avg-30d volume is below min_volume (STOCK-volume filter done
+    client-side — UW's min_volume param filters OPTIONS volume, confirmed
+    2026-07-22, which is why it pinned the universe to 1 name)."""
     universe = {}
     for row in rows:
         if row.get("is_index"):
             continue
         itype = str(row.get("issue_type", "")).lower()
         if "etf" in itype or "fund" in itype:
+            continue
+        vol = _to_float(row.get("avg30_volume")) or _to_float(row.get("stock_volume"))
+        if vol < min_volume:
             continue
         t = str(row.get("ticker", "")).upper()
         if not t:
@@ -75,9 +81,18 @@ def _parse_screener(rows):
             "companyName": row.get("full_name", ""),
             "marketCap": _to_float(row.get("marketcap")),
             "price": _to_float(row.get("close")),
-            "volume": _to_float(row.get("stock_volume")),
+            "volume": vol,
         }
     return universe
+
+
+# UW screener caps at 500 rows/call and ignores page= (probed 2026-07-22), so
+# a single call can't return the full universe. We partition the market-cap
+# range into buckets each expected to hold < 500 names and merge them. Finer at
+# the low end where small-caps cluster. A bucket returning exactly 500 is likely
+# truncated (logged) — subdivide that range if it happens.
+_MC_LADDER = [100e6, 175e6, 275e6, 400e6, 550e6, 750e6, 1e9, 1.4e9,
+              2e9, 3e9, 4.5e9, 7e9, 10e9, 20e9, 50e9, 100e9]
 
 
 def load_universe(cfg):
@@ -100,22 +115,31 @@ def load_universe(cfg):
     if not tok:
         raise SystemExit("No universe.json and no UW token (~/.uw_credentials "
                          "or UW_API_TOKEN env). Cannot build the universe.")
-    params = {
-        "min_marketcap": int(u["market_cap_min"]),
-        "max_marketcap": int(u["market_cap_max"]),
-        "min_volume": int(u["volume_min"]),
-        "limit": int(u.get("limit", 3000)),
-    }
-    r = requests.get(f"{UW_BASE}/api/screener/stocks", params=params,
-                     headers={"Authorization": f"Bearer {tok}", "Accept": "application/json"},
-                     timeout=30)
-    r.raise_for_status()
-    rows = r.json().get("data", [])
-    universe = _parse_screener(rows)
+    lo, hi = float(u["market_cap_min"]), float(u["market_cap_max"])
+    edges = sorted({lo, hi} | {e for e in _MC_LADDER if lo < e < hi})
+    buckets = list(zip(edges[:-1], edges[1:]))
+    min_vol = float(u.get("volume_min", 0))
+    limit = int(u.get("limit", 5000))
+    hdr = {"Authorization": f"Bearer {tok}", "Accept": "application/json"}
+    universe, truncated = {}, []
+    for a, b in buckets:
+        r = requests.get(f"{UW_BASE}/api/screener/stocks",
+                         params={"min_marketcap": int(a), "max_marketcap": int(b), "limit": 500},
+                         headers=hdr, timeout=30)
+        r.raise_for_status()
+        rows = r.json().get("data", [])
+        if len(rows) >= 500:                      # bucket hit the cap — may be missing names
+            truncated.append((int(a), int(b)))
+        universe.update(_parse_screener(rows, min_vol))
+        if len(universe) >= limit:
+            break
+    if truncated:
+        log.warning("UW mc-buckets hit the 500-row cap (may miss names) — subdivide: %s",
+                    truncated)
     if universe:
         UNIVERSE_CACHE.write_text(json.dumps(universe))
-        log.info("universe refreshed via UW: %d names (from %d screener rows)",
-                 len(universe), len(rows))
+        log.info("universe refreshed via UW: %d names across %d mc-buckets",
+                 len(universe), len(buckets))
     else:
         log.warning("UW screener returned 0 usable names — keeping existing cache")
         if UNIVERSE_CACHE.exists():
