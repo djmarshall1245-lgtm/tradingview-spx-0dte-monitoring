@@ -3,19 +3,10 @@
 # "learned". Versioned; every prior version snapshots to history/.
 # Pattern: YouTuber #1 (Hermes). Gates: YouTuber #2 (AI Pathways) + yours.
 
-# v02.4 [2026-07-23 Thu, user GO] — SECOND ENTRY ENGINE. Added gates.a_plus_trend:
-#   an INDEPENDENT confluence-trend entry path that fires when the AR Squeeze
-#   script will NOT (clean one-directional trend day — no squeeze, no flip, no
-#   pullback SCALP). Trigger: 2026-07-23 SPX bled -1.4% (7440->7394) all morning,
-#   tape+flow both bearish, but a_plus stayed UNFIRED the whole way down because
-#   it depends on a script-fired dot. This path lets the desk's OWN logic
-#   (internals + momentum + flow + structure) initiate a trade. Added
-#   gates.entry_trigger (any_of[a_plus, a_plus_trend]). NO hard rail relaxed —
-#   same -40% stop, same cap, band, window, concentration, max_positions.
 # v02.3 [2026-07-11 Sat, user GO] — off-cycle display-only add: appended
 #   vwap, ema_8_21, add, tick, trin, vold, gamma_regime to
 #   terminal_engine.dashboard_display. No gate/rail touched; engine still OFF.
-version: "02.4"
+version: "02.3"
 based_on_goal: strategy/goal.yaml
 
 instrument:
@@ -49,51 +40,17 @@ direction:
 # PRE-TRADE GATES — all must pass. Deterministic where possible.
 # ─────────────────────────────────────────────────────────────────────
 gates:
-  entry_trigger:                            # [v02.4, user GO 2026-07-23] which path may INITIATE a trade
-    require: any_of                         # entry may fire if EITHER trigger path is satisfied...
-    paths: [a_plus, a_plus_trend]
-    plus_all_of: [macro, concentration, iv_filter, gut_check]  # ...AND every other gate still passes
-    note: |
-      a_plus       = the AR Squeeze fired-dot path (the script initiates).
-      a_plus_trend = the desk's OWN confluence-trend logic (initiates when the
-                     script won't fire on a clean trend day).
-      Exactly ONE trigger path needs to fire. macro + concentration + iv_filter
-      + gut_check + ALL hard rails apply to BOTH paths, always. This does not
-      loosen anything — it adds a second way to SEE a valid trade, under the
-      same risk envelope.
   macro:                                    # [YT#2] 0-100 score, lib/macro_gate.py
     required: true
     with_risk_min_score: 50                 # if trading WITH broad risk
     against_risk_min_score: 65              # if trading AGAINST it, higher bar
     tag_regime: [trend_up, trend_down, chop, event_driven]
     event_driven_unfired: stand_down
-  a_plus:                                    # [yours] the edge — PATH 1 (script-fired)
+  a_plus:                                    # [yours] the edge
     flow_ratio_min: 6                        # Unusual Whales, in trade direction
     gauge_confirms: true
-    chart_aligned: true                      # requires a FIRED AR Squeeze signal (call/putConfirm)
+    chart_aligned: true
     all_required: true
-  a_plus_trend:                              # [v02.4, user GO 2026-07-23] PATH 2 — independent trend engine
-    # Fires when the AR Squeeze script will NOT: a clean one-directional trend
-    # day with no squeeze, no counter-trend flip, no pullback SCALP. Lets the
-    # desk's OWN logic initiate a trade instead of waiting on a script dot.
-    enabled: true
-    all_required: true                       # EVERY condition below must hold to fire
-    conditions:
-      internals_composite_min: 0.5           # |SQUEEZE MAX composite| >= 0.5 in the trade direction
-      internals_unanimous: true              # all four (TICK / ADD / VOLD / TRIN) agree with direction
-      momentum_aligned_bars: 3               # histogram on trade side, confirmed >= 3 bars (not flattening/diverging)
-      flow: CONFIRM                          # UW tide net direction agrees; flow_ratio_min (6, above) still applies
-      structure: break_and_hold              # fresh break-AND-HOLD of a Voodoo level in the trade direction
-    anti_chase:                              # the guard that says NO to a late chase (e.g. SPX 7394 on 2026-07-23)
-      max_pts_beyond_level: 15               # SKIP if price is already > 15 SPX pts past the broken Voodoo level
-      rationale: "no shorting into a hole / buying into a rip after the move is already made"
-    inherits_rails:                          # UNCHANGED — this path can NOT loosen any of these
-      hard_stop_pct: exits.hard_stop_pct               # -40%
-      premium_band: instrument.premium_per_contract_usd # funding-aware tiers
-      daily_cap: risk_controls.daily_loss_cap_trades    # 2 base; 1 at $794 (goal.yaml partial_funding_rule)
-      time_window: "09:45-14:30 ET, skip lunch 12:00-13:00, none after 14:30"
-      concentration: gates.concentration               # 1/ticker, 1/sector
-      max_positions: concurrency.max_open_positions    # 2
   concentration:                             # [YT#2]
     max_per_ticker: 1
     max_per_sector: 1
@@ -156,8 +113,6 @@ hard_rails_locked:
 # ─────────────────────────────────────────────────────────────────────
 editable_by_loop:
   - gates.a_plus.flow_ratio_min
-  - gates.a_plus_trend.conditions           # [v02.4] refine trend-engine thresholds with data, not loosen
-  - gates.a_plus_trend.anti_chase.max_pts_beyond_level  # [v02.4] tune the chase guard
   - gates.macro.with_risk_min_score
   - gates.macro.against_risk_min_score
   - instrument.premium_per_contract_usd
