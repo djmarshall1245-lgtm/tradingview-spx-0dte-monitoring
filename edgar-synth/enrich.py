@@ -122,17 +122,29 @@ def load_universe(cfg):
     limit = int(u.get("limit", 5000))
     hdr = {"Authorization": f"Bearer {tok}", "Accept": "application/json"}
     universe, truncated = {}, []
-    for a, b in buckets:
-        r = requests.get(f"{UW_BASE}/api/screener/stocks",
-                         params={"min_marketcap": int(a), "max_marketcap": int(b), "limit": 500},
-                         headers=hdr, timeout=30)
-        r.raise_for_status()
-        rows = r.json().get("data", [])
-        if len(rows) >= 500:                      # bucket hit the cap — may be missing names
-            truncated.append((int(a), int(b)))
-        universe.update(_parse_screener(rows, min_vol))
-        if len(universe) >= limit:
-            break
+    try:
+        for a, b in buckets:
+            r = requests.get(f"{UW_BASE}/api/screener/stocks",
+                             params={"min_marketcap": int(a), "max_marketcap": int(b), "limit": 500},
+                             headers=hdr, timeout=30)
+            r.raise_for_status()
+            rows = r.json().get("data", [])
+            if len(rows) >= 500:                  # bucket hit the cap — may be missing names
+                truncated.append((int(a), int(b)))
+            universe.update(_parse_screener(rows, min_vol))
+            if len(universe) >= limit:
+                break
+    except requests.RequestException as e:
+        # A rejected/expired token (401) or any network error must NOT kill the
+        # watcher when a usable cache exists — degrade to the stale cache and
+        # keep running (this crashed the whole process on 2026-07-27). Only
+        # hard-stop when there's genuinely nothing on disk to fall back on.
+        if UNIVERSE_CACHE.exists():
+            log.warning("universe refresh failed (%s) — falling back to stale "
+                        "cache so the watcher keeps running", e)
+            return json.loads(UNIVERSE_CACHE.read_text())
+        raise SystemExit(f"universe refresh failed and no cache to fall back "
+                         f"on: {e}")
     if truncated:
         log.warning("UW mc-buckets hit the 500-row cap (may miss names) — subdivide: %s",
                     truncated)
