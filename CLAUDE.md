@@ -444,6 +444,38 @@ gives (raw is fine).
 - Servers showing `needs authentication` (robinhood, gmail, calendar, drive)
   are harmless if unused — authenticate them only when you actually need them.
 
+## Pipeline watch (clinical-trial catalysts — STANDALONE, not in the brief)
+
+`python3 run.py --pipeline` diffs ClinicalTrials.gov against a stored
+snapshot for 12 health-sector names (`config.yaml -> pipeline_watch`) and
+reports only what CHANGED: status transitions, phase moves,
+primary-completion slips, enrollment resizes, and new Phase 3/4 trials.
+Capped at 25 lines, most material first. Code: `lib/pipeline.py`.
+
+DELIBERATELY STANDALONE — decided 2026-08-24, do not "helpfully" wire it in:
+- NOT a section in `--brief`. It would print "no material changes" most
+  mornings, which trains you to skip the block that occasionally matters.
+- NOT scoped to `positions.yaml`. The value is seeing a catalyst BEFORE
+  being positioned; holdings-scoping defeats the point.
+- Health names are NOT in `watchlist` — this is a catalyst feed, not a
+  0DTE trading list, and they must not enter the concentration gate.
+
+Run it a few times a week, manually. ADVISORY: a trial change is a
+catalyst tell, never a trade trigger — it gates nothing and must be
+confirmed against UW flow/GEX before anything is sized.
+
+`query_mode: exact` (lead sponsor only) is the default ON PURPOSE. The
+wider `spons` mode was tried live 2026-08-24 and reverted: it added ~150
+records but attributed a home-visiting social program and a post-op
+acetaminophen study to JNJ, an exercise study to AMGN — investigator-led
+trials where the company only supplies the drug. Wider, not better.
+
+Adding a ticker: put it in `pipeline_watch`, then VERIFY with
+`python3 -m lib.pipeline --probe --since=14 TICKER`. A sponsor string that
+matches nothing returns zero silently and is invisible in the total — that
+mis-read cost two wrong fixes on JNJ. Zero all-time = bad string; zero in
+the window = just quiet. The probe distinguishes them; guessing does not.
+
 ## Supervisor audit (second-model contradiction check)
 
 `python3 run.py --supervise` sends the day-state (strategy, goal, positions,
