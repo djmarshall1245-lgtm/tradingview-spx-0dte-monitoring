@@ -141,7 +141,6 @@ pipeline_watch:
   # across entities are deduped by the trials table's PRIMARY KEY.
   JNJ:  ["Janssen Research & Development, LLC",
          "Janssen Pharmaceutica N.V.",
-         "Janssen Pharmaceuticals, Inc.",
          "Janssen Biotech, Inc.",
          "Janssen-Cilag International NV",
          "Johnson & Johnson"]
@@ -154,6 +153,10 @@ pipeline_watch:
 
 pipeline:
   since_days: 14        # only records CT.gov touched in this window (null = all)
+  # spons = CT.gov sponsor search: catches subsidiaries + co-sponsored trials.
+  #         Measured 25-100% more records than exact (MRK 85->127 on 14d).
+  # exact = strict AREA[LeadSponsorName]: lead sponsor only, less noise.
+  query_mode: spons
 
 # ─────────────────────────────────────────────────────────────────────
 screenshots:

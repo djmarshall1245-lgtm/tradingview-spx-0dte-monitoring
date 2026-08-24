@@ -135,10 +135,22 @@ def _get(node, field):
     return None
 
 
-def _fetch(sponsor, since_days=None, page_size=200, max_pages=10):
-    """All studies for one sponsor, optionally only those updated recently."""
+def _fetch(sponsor, since_days=None, page_size=200, max_pages=10, mode="spons"):
+    """All studies for one sponsor, optionally only those updated recently.
+
+    mode="spons" uses CT.gov's own sponsor search, which also catches
+    subsidiaries and co-sponsored trials. Measured on this watchlist it
+    returns 25-100% MORE records than the strict name match (MRK 85 -> 127,
+    GILD 12 -> 26 on a 14d window), which is why it is the default: a
+    catalyst you never see is worse than one you filter out.
+
+    mode="exact" is the strict AREA[LeadSponsorName] match -- lead sponsor
+    only, no collaborators. Use it when attribution matters more than
+    coverage. Set via config.yaml -> pipeline.query_mode.
+    """
     params = {
-        "query.term": f'AREA[LeadSponsorName]"{sponsor}"',
+        ("query.spons" if mode == "spons" else "query.term"):
+            sponsor if mode == "spons" else f'AREA[LeadSponsorName]"{sponsor}"',
         "fields": ",".join(FIELDS),
         "pageSize": str(page_size),
         "countTotal": "true",
@@ -181,16 +193,21 @@ def _to_study(node, ticker, sponsor):
     )
 
 
-def pull(watch=None, since_days=None):
-    """Live pull for every ticker in the watch map. Returns (studies, errors)."""
+def pull(watch=None, since_days=None, mode="spons"):
+    """Live pull for every ticker in the watch map. Returns (studies, errors).
+
+    A trial can surface under more than one sponsor string (J&J files across
+    several Janssen entities); dedupe on NCTId so it is counted once.
+    """
     watch = watch or DEFAULT_WATCH
-    studies, errors = [], []
+    studies, errors, seen = [], [], set()
     for ticker, sponsors in watch.items():
         for sponsor in sponsors:
             try:
-                for node in _fetch(sponsor, since_days):
+                for node in _fetch(sponsor, since_days, mode=mode):
                     s = _to_study(node, ticker, sponsor)
-                    if s.nct:
+                    if s.nct and s.nct not in seen:
+                        seen.add(s.nct)
                         studies.append(s)
             except Exception as e:                      # never fake data on failure
                 errors.append(f"{ticker} / {sponsor}: {type(e).__name__}: {str(e)[:120]}")
@@ -312,19 +329,32 @@ def probe(watch=None, since_days=None):
                 sp = _count({"query.spons": s}, since_days)
             except Exception as e:
                 sp = f"ERR:{type(e).__name__}"
-            flag = "  <-- ZERO, string does not match" if ex == 0 else ""
+            flag = ""
+            if ex == 0:
+                if since_days:
+                    # A zero in a WINDOW only means no recent updates. Confirm
+                    # against all-time before calling the string broken --
+                    # reading a windowed zero as a bad name sent this map on a
+                    # wrong-turn once already.
+                    alltime = _count({"query.term": f'AREA[LeadSponsorName]"{s}"'})
+                    flag = ("  <-- no updates in window (string OK, "
+                            f"{alltime} all-time)") if alltime else \
+                           "  <-- ZERO all-time, string does not match"
+                else:
+                    flag = "  <-- ZERO all-time, string does not match"
             print(f"{ticker:<7}{str(ex):>7}{str(sp):>8}  {s}{flag}")
 
 
-def report(watch=None, since_days=None, asof=None):
+def report(watch=None, since_days=None, asof=None, mode="spons"):
     """Human-readable diff block for the brief. Late-phase changes lead."""
     watch = watch or DEFAULT_WATCH
-    studies, errors = pull(watch, since_days)
+    studies, errors = pull(watch, since_days, mode)
     first_run = _conn().execute("SELECT COUNT(*) c FROM trials").fetchone()["c"] == 0
     changes = diff(studies, asof=asof)
 
     lines = [f"⑥ PIPELINE WATCH — ClinicalTrials.gov  [TOOL] {API}",
-             f"   {len(studies)} trial records across {len(watch)} tickers"
+             f"   {len(studies)} trial records across {len(watch)} tickers "
+             f"(match: {mode})"
              + (f", updated in last {since_days}d" if since_days else "")]
     if errors:
         lines.append("   FETCH ERRORS (data missing, NOT assumed unchanged):")
@@ -351,15 +381,16 @@ def report(watch=None, since_days=None, asof=None):
 
 
 def _config_watch():
-    """Prefer config.yaml's map over the module default, so the CLI and
-    `run.py --pipeline` always probe/pull the SAME list."""
+    """Prefer config.yaml over module defaults, so the CLI and
+    `run.py --pipeline` always use the SAME list and query mode."""
     try:
         import yaml
         cfg = yaml.safe_load(
             (pathlib.Path(__file__).resolve().parent.parent / "config.yaml").read_text())
-        return (cfg or {}).get("pipeline_watch") or DEFAULT_WATCH
+        return ((cfg or {}).get("pipeline_watch") or DEFAULT_WATCH,
+                ((cfg or {}).get("pipeline") or {}).get("query_mode", "spons"))
     except Exception:
-        return DEFAULT_WATCH
+        return DEFAULT_WATCH, "spons"
 
 
 if __name__ == "__main__":
@@ -367,9 +398,9 @@ if __name__ == "__main__":
     argv = sys.argv[1:]
     args = [a for a in argv if not a.startswith("-")]
     since = next((a.split("=", 1)[1] for a in argv if a.startswith("--since=")), None)
-    base = _config_watch()
+    base, mode = _config_watch()
     w = {t: base[t] for t in args if t in base} or base
     if "--probe" in argv:
         probe(w, since)
     else:
-        print(report(w, since))
+        print(report(w, since, mode=mode))
