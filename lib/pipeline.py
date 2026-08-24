@@ -23,6 +23,7 @@ sponsor strings change without touching code.
 from __future__ import annotations
 
 import json
+import pathlib
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, asdict
@@ -272,6 +273,49 @@ def diff(studies, conn=None, asof=None):
     return changes
 
 
+
+def _count(term_param, since_days=None):
+    """Total matching records for one query, without paging through them."""
+    params = dict(term_param, pageSize="1", countTotal="true")
+    if since_days:
+        cutoff = (date.today() - timedelta(days=int(since_days))).isoformat()
+        params["filter.advanced"] = f"AREA[LastUpdatePostDate]RANGE[{cutoff},MAX]"
+    req = urllib.request.Request(f"{API}?{urllib.parse.urlencode(params)}",
+                                 headers={"User-Agent": UA, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode()).get("totalCount", 0)
+
+
+def probe(watch=None, since_days=None):
+    """Report per-sponsor-string hit counts. Run this when adding a ticker.
+
+    A sponsor string that silently returns 0 contributes nothing and is
+    invisible in the aggregate total — that is exactly how the JNJ map was
+    wrong for two runs. This makes the miss loud.
+
+    Compares two query modes:
+      exact  AREA[LeadSponsorName]"..."  — what pull() uses; strict
+      spons  query.spons=...             — CT.gov's own sponsor search; looser,
+                                           catches subsidiaries you did not name
+    """
+    watch = watch or DEFAULT_WATCH
+    print(f"PROBE — sponsor-string hit counts"
+          + (f" (updated last {since_days}d)" if since_days else " (all time)"))
+    print(f"{'ticker':<7}{'exact':>7}{'spons':>8}  sponsor string")
+    for ticker, sponsors in watch.items():
+        for s in sponsors:
+            try:
+                ex = _count({"query.term": f'AREA[LeadSponsorName]"{s}"'}, since_days)
+            except Exception as e:
+                ex = f"ERR:{type(e).__name__}"
+            try:
+                sp = _count({"query.spons": s}, since_days)
+            except Exception as e:
+                sp = f"ERR:{type(e).__name__}"
+            flag = "  <-- ZERO, string does not match" if ex == 0 else ""
+            print(f"{ticker:<7}{str(ex):>7}{str(sp):>8}  {s}{flag}")
+
+
 def report(watch=None, since_days=None, asof=None):
     """Human-readable diff block for the brief. Late-phase changes lead."""
     watch = watch or DEFAULT_WATCH
@@ -306,9 +350,26 @@ def report(watch=None, since_days=None, asof=None):
     return "\n".join(lines)
 
 
+def _config_watch():
+    """Prefer config.yaml's map over the module default, so the CLI and
+    `run.py --pipeline` always probe/pull the SAME list."""
+    try:
+        import yaml
+        cfg = yaml.safe_load(
+            (pathlib.Path(__file__).resolve().parent.parent / "config.yaml").read_text())
+        return (cfg or {}).get("pipeline_watch") or DEFAULT_WATCH
+    except Exception:
+        return DEFAULT_WATCH
+
+
 if __name__ == "__main__":
     import sys
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    since = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--since=")), None)
-    w = {t: DEFAULT_WATCH[t] for t in args if t in DEFAULT_WATCH} or None
-    print(report(w, since))
+    argv = sys.argv[1:]
+    args = [a for a in argv if not a.startswith("-")]
+    since = next((a.split("=", 1)[1] for a in argv if a.startswith("--since=")), None)
+    base = _config_watch()
+    w = {t: base[t] for t in args if t in base} or base
+    if "--probe" in argv:
+        probe(w, since)
+    else:
+        print(report(w, since))
