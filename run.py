@@ -4,6 +4,7 @@ trades. Run on your Mac (needs network for live data).
 
   python run.py --brief                 # full daily monitor (macro+book+alerts+news)
   python run.py --snapshot              # just snapshot chains (daily IV-history ramp)
+  python run.py --pipeline              # clinical-trial pipeline diff (health names)
   python run.py --score                 # expectancy report from journal/trades.jsonl
   python run.py --supervise             # end-of-day contradiction audit (MiniMax M3, advisory)
   python run.py --shot chart            # screenshot a named region (see config.yaml)
@@ -76,6 +77,15 @@ def _log_session_start(now, asof, cap):
     with open(path, "a") as f:
         f.write(json.dumps({"event": "session_start", "asof": asof,
                             "ts": now.isoformat(), "today_cap": cap}) + "\n")
+
+
+def cmd_pipeline(since):
+    from lib import pipeline
+    cfg = _load_yaml("config.yaml")
+    watch = cfg.get("pipeline_watch") or None
+    if since is None:
+        since = (cfg.get("pipeline", {}) or {}).get("since_days")
+    print(pipeline.report(watch, since))
 
 
 def cmd_brief(asof):
@@ -185,6 +195,10 @@ def main():
     ap.add_argument("--shot", nargs="?", const="", help="named region, or use --window/--full")
     ap.add_argument("--window", action="store_true")
     ap.add_argument("--full", action="store_true")
+    ap.add_argument("--pipeline", action="store_true",
+                    help="clinical-trial pipeline diff for health-sector names")
+    ap.add_argument("--since", type=int, default=None,
+                    help="--pipeline: only records updated in the last N days")
     ap.add_argument("--asof", default=None)
     args = ap.parse_args()
 
@@ -203,6 +217,8 @@ def main():
         ran = True
     if args.supervise:
         cmd_supervise(args.asof); ran = True
+    if args.pipeline:
+        cmd_pipeline(args.since); ran = True
     if args.brief:
         cmd_brief(args.asof); ran = True
     if not ran:

@@ -123,6 +123,30 @@ news:
 # points. PLACEHOLDERS — calibrate once on your Mac (see README "Calibrate
 # screenshot regions"). Until then use `--window` to click-capture.
 # ─────────────────────────────────────────────────────────────────────
+# Pipeline watch (lib/pipeline.py) — health-sector clinical-trial catalysts.
+# ticker -> CT.gov LeadSponsorName string(s). Sponsors register under legal
+# entity names and big pharma files under subsidiaries (MRK as "Merck Sharp &
+# Dohme", JNJ as "Janssen"), so this map is the ticker<->sponsor join.
+# Names are NOT in `watchlist` above — this is a catalyst feed, not a
+# 0DTE trading list. Add a ticker here to track it; no code change needed.
+pipeline_watch:
+  LLY:  ["Eli Lilly and Company"]
+  NVO:  ["Novo Nordisk A/S"]
+  MRK:  ["Merck Sharp & Dohme LLC"]
+  PFE:  ["Pfizer"]
+  ABBV: ["AbbVie"]
+  JNJ:  ["Janssen Research & Development, LLC", "Johnson & Johnson"]
+  AMGN: ["Amgen"]
+  BMY:  ["Bristol-Myers Squibb"]
+  GILD: ["Gilead Sciences"]
+  VRTX: ["Vertex Pharmaceuticals Incorporated"]
+  REGN: ["Regeneron Pharmaceuticals"]
+  MRNA: ["ModernaTX, Inc."]
+
+pipeline:
+  since_days: 14        # only records CT.gov touched in this window (null = all)
+
+# ─────────────────────────────────────────────────────────────────────
 screenshots:
   regions:
     chart: [0, 0, 1200, 800]               # TradingView chart pane
