@@ -135,7 +135,16 @@ pipeline_watch:
   MRK:  ["Merck Sharp & Dohme LLC"]
   PFE:  ["Pfizer"]
   ABBV: ["AbbVie"]
-  JNJ:  ["Janssen Research & Development, LLC", "Johnson & Johnson"]
+  # J&J registers across several Janssen entities, not one. A single string
+  # caught ~14 records vs Pfizer's 92 on a 14d window — too few for a pipeline
+  # that size, so all the filing subsidiaries are listed. Duplicate NCTIds
+  # across entities are deduped by the trials table's PRIMARY KEY.
+  JNJ:  ["Janssen Research & Development, LLC",
+         "Janssen Pharmaceutica N.V.",
+         "Janssen Pharmaceuticals, Inc.",
+         "Janssen Biotech, Inc.",
+         "Janssen-Cilag International NV",
+         "Johnson & Johnson"]
   AMGN: ["Amgen"]
   BMY:  ["Bristol-Myers Squibb"]
   GILD: ["Gilead Sciences"]
