@@ -153,10 +153,13 @@ pipeline_watch:
 
 pipeline:
   since_days: 14        # only records CT.gov touched in this window (null = all)
-  # spons = CT.gov sponsor search: catches subsidiaries + co-sponsored trials.
-  #         Measured 25-100% more records than exact (MRK 85->127 on 14d).
-  # exact = strict AREA[LeadSponsorName]: lead sponsor only, less noise.
-  query_mode: spons
+  # exact = strict AREA[LeadSponsorName]: the company RUNNING the trial.
+  # spons = CT.gov sponsor search: ~25-100% more records, but the extras are
+  #         mostly investigator-initiated/academic trials where the company
+  #         only supplies the drug. A live run filed a home-visiting social
+  #         program under JNJ that way. Wider, not better.
+  query_mode: exact
+  max_lines: 25         # cap the diff block; NEW early-phase trials are hidden
 
 # ─────────────────────────────────────────────────────────────────────
 screenshots:

@@ -85,8 +85,9 @@ def cmd_pipeline(since):
     watch = cfg.get("pipeline_watch") or None
     if since is None:
         since = (cfg.get("pipeline", {}) or {}).get("since_days")
-    mode = (cfg.get("pipeline", {}) or {}).get("query_mode", "spons")
-    print(pipeline.report(watch, since, mode=mode))
+    pcfg = cfg.get("pipeline", {}) or {}
+    print(pipeline.report(watch, since, mode=pcfg.get("query_mode", "exact"),
+                          max_lines=pcfg.get("max_lines", 25)))
 
 
 def cmd_brief(asof):

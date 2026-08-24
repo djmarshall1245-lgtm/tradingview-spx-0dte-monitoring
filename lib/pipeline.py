@@ -135,10 +135,10 @@ def _get(node, field):
     return None
 
 
-def _fetch(sponsor, since_days=None, page_size=200, max_pages=10, mode="spons"):
+def _fetch(sponsor, since_days=None, page_size=200, max_pages=10, mode="exact"):
     """All studies for one sponsor, optionally only those updated recently.
 
-    mode="spons" uses CT.gov's own sponsor search, which also catches
+    mode="exact" uses CT.gov's own sponsor search, which also catches
     subsidiaries and co-sponsored trials. Measured on this watchlist it
     returns 25-100% MORE records than the strict name match (MRK 85 -> 127,
     GILD 12 -> 26 on a 14d window), which is why it is the default: a
@@ -193,7 +193,7 @@ def _to_study(node, ticker, sponsor):
     )
 
 
-def pull(watch=None, since_days=None, mode="spons"):
+def pull(watch=None, since_days=None, mode="exact"):
     """Live pull for every ticker in the watch map. Returns (studies, errors).
 
     A trial can surface under more than one sponsor string (J&J files across
@@ -345,7 +345,7 @@ def probe(watch=None, since_days=None):
             print(f"{ticker:<7}{str(ex):>7}{str(sp):>8}  {s}{flag}")
 
 
-def report(watch=None, since_days=None, asof=None, mode="spons"):
+def report(watch=None, since_days=None, asof=None, mode="exact", max_lines=25):
     """Human-readable diff block for the brief. Late-phase changes lead."""
     watch = watch or DEFAULT_WATCH
     studies, errors = pull(watch, since_days, mode)
@@ -367,14 +367,32 @@ def report(watch=None, since_days=None, asof=None, mode="spons"):
         lines.append("   no material changes since last snapshot")
         return "\n".join(lines)
 
-    def rank(c):
-        late = 0 if (c.get("phase") or "").upper() in ("PHASE3", "PHASE2|PHASE3") else 1
-        return (late, 0 if c.get("severity") in ("bearish", "bullish") else 1, c["ticker"])
+    # A NEW record on an early-phase or observational trial is not news --
+    # 150 undifferentiated lines is how a real signal gets scrolled past. Any
+    # CHANGE to an existing trial stays, at every phase: a terminated Phase 1
+    # still tells you something.
+    LATE = ("PHASE3", "PHASE4", "PHASE2|PHASE3")
+    material = [c for c in changes
+                if c["kind"] != "NEW" or (c.get("phase") or "").upper() in LATE]
+    suppressed = len(changes) - len(material)
 
-    for c in sorted(changes, key=rank):
+    def rank(c):
+        return (0 if c["kind"] != "NEW" else 1,                       # changes first
+                0 if (c.get("phase") or "").upper() in LATE else 1,   # then late phase
+                0 if c.get("severity") in ("bearish", "bullish") else 1,
+                c["ticker"])
+
+    shown = sorted(material, key=rank)[:max_lines]
+    for c in shown:
         sev = f" [{c['severity']}]" if c.get("severity") else ""
         lines.append(f"   {c['ticker']:<5} {c['kind']}{sev} {c.get('phase') or '-'} "
-                     f"{c['nct']}: {c['detail']}")
+                     f"{c['nct']}: {c['detail'][:95]}")
+    if len(material) > len(shown):
+        lines.append(f"   ... +{len(material) - len(shown)} more material changes "
+                     f"(raise pipeline.max_lines to see them)")
+    if suppressed:
+        lines.append(f"   ({suppressed} new early-phase/observational trials not shown "
+                     f"— late-phase only)")
     lines.append("   Trial data is a CATALYST tell, not a trade trigger — "
                  "confirm with flow/GEX before sizing anything.")
     return "\n".join(lines)
@@ -388,9 +406,9 @@ def _config_watch():
         cfg = yaml.safe_load(
             (pathlib.Path(__file__).resolve().parent.parent / "config.yaml").read_text())
         return ((cfg or {}).get("pipeline_watch") or DEFAULT_WATCH,
-                ((cfg or {}).get("pipeline") or {}).get("query_mode", "spons"))
+                ((cfg or {}).get("pipeline") or {}).get("query_mode", "exact"))
     except Exception:
-        return DEFAULT_WATCH, "spons"
+        return DEFAULT_WATCH, "exact"
 
 
 if __name__ == "__main__":
