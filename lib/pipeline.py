@@ -417,7 +417,14 @@ if __name__ == "__main__":
     args = [a for a in argv if not a.startswith("-")]
     since = next((a.split("=", 1)[1] for a in argv if a.startswith("--since=")), None)
     base, mode = _config_watch()
-    w = {t: base[t] for t in args if t in base} or base
+    unknown = [a for a in args if a not in base]
+    if unknown:
+        # Falling back to the full map here would answer a question about one
+        # ticker with data about twelve others, and look like a valid result.
+        sys.exit(f"Not in pipeline_watch: {', '.join(unknown)}\n"
+                 f"Tracked: {', '.join(base)}\n"
+                 f"Add it to config.yaml -> pipeline_watch first.")
+    w = {a: base[a] for a in args} or base
     if "--probe" in argv:
         probe(w, since)
     else:

@@ -150,6 +150,10 @@ pipeline_watch:
   VRTX: ["Vertex Pharmaceuticals Incorporated"]
   REGN: ["Regeneron Pharmaceuticals"]
   MRNA: ["ModernaTX, Inc."]
+  # Small-cap biotech: a single readout can move it 50%+, unlike the large
+  # caps above. Two entities since the 2024 Sanofi deal split the company,
+  # so both names are listed. VERIFY with --probe before trusting counts.
+  INBX: ["Inhibrx, Inc.", "Inhibrx Biosciences, Inc."]
 
 pipeline:
   since_days: 14        # only records CT.gov touched in this window (null = all)
