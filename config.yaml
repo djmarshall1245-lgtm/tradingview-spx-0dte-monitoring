@@ -151,9 +151,9 @@ pipeline_watch:
   REGN: ["Regeneron Pharmaceuticals"]
   MRNA: ["ModernaTX, Inc."]
   # Small-cap biotech: a single readout can move it 50%+, unlike the large
-  # caps above. Two entities since the 2024 Sanofi deal split the company,
-  # so both names are listed. VERIFY with --probe before trusting counts.
-  INBX: ["Inhibrx, Inc.", "Inhibrx Biosciences, Inc."]
+  # caps above. Post-Sanofi-split entity only -- probed 2026-08-26: the old
+  # "Inhibrx, Inc." returns 0 all-time, "Inhibrx Biosciences, Inc." returns 6.
+  INBX: ["Inhibrx Biosciences, Inc."]
 
 pipeline:
   since_days: 14        # only records CT.gov touched in this window (null = all)
