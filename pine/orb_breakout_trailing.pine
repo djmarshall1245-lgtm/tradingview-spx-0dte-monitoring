@@ -1,0 +1,141 @@
+//@version=6
+indicator("ORB Breakout (Long + Short) + 2-Bar Trailing Stop", shorttitle="ORB+Trail", overlay=true)
+
+// ── Inputs ───────────────────────────────────────────────────────────────────
+float vol_mult   = input.float(1.5, "Volume Multiplier (vs OR avg)", minval=1.0, step=0.1, group="ORB Settings")
+bool  use_long   = input.bool(true,  "Enable Upside Breakout (long)",   group="ORB Settings")
+bool  use_short  = input.bool(true,  "Enable Downside Breakdown (short)", group="ORB Settings")
+int   lookback   = input.int(2,     "Trailing Stop Lookback (bars)", minval=1, maxval=50, group="Trailing Stop")
+bool  show_stop  = input.bool(true,  "Show Trailing Stop Line", group="Display")
+bool  show_or    = input.bool(true,  "Show OR High/Low Lines",  group="Display")
+
+// ── Session / opening range ──────────────────────────────────────────────────
+is_new_day     = ta.change(time("D")) != 0
+is_or_bar      = hour == 9 and minute >= 30
+in_time_window = (hour == 9 and minute >= 30) or (hour >= 10 and hour < 14) or (hour == 14 and minute <= 30)
+
+var float or_high      = na
+var float or_low       = na
+var float or_vol_sum   = 0.0
+var int   or_vol_count = 0
+var bool  or_complete  = false
+
+if is_new_day
+    or_high      := na
+    or_low       := na
+    or_vol_sum   := 0.0
+    or_vol_count := 0
+    or_complete  := false
+
+if is_or_bar
+    or_high      := na(or_high) ? high : math.max(or_high, high)
+    or_low       := na(or_low)  ? low  : math.min(or_low,  low)
+    or_vol_sum   += volume
+    or_vol_count += 1
+
+if not or_complete and not is_or_bar and hour >= 10 and not na(or_high)
+    or_complete := true
+
+or_vol_avg = or_vol_count > 0 ? or_vol_sum / or_vol_count : na
+vwap       = ta.vwap(hlc3)
+lowest_n   = ta.lowest(low,   lookback)[1]
+highest_n  = ta.highest(high, lookback)[1]
+
+// ── Shared filters ───────────────────────────────────────────────────────────
+vol_ok  = not na(or_vol_avg) and volume >= vol_mult * or_vol_avg
+time_ok = in_time_window
+mid_bar = (high + low) / 2
+
+// ── Long conditions (upside breakout) ────────────────────────────────────────
+above_or_high  = or_complete and not na(or_high) and close > or_high
+above_vwap     = close > vwap
+close_in_top   = (high - low) > 0 and close >= mid_bar
+long_conditions  = use_long  and above_or_high and vol_ok and above_vwap and time_ok and close_in_top
+
+// ── Short conditions (downside breakdown) — mirror of the long side ──────────
+below_or_low   = or_complete and not na(or_low) and close < or_low
+below_vwap     = close < vwap
+close_in_bot   = (high - low) > 0 and close <= mid_bar
+short_conditions = use_short and below_or_low and vol_ok and below_vwap and time_ok and close_in_bot
+
+// ── Trade state: 0 = flat, 1 = long, -1 = short ──────────────────────────────
+var int   trade_dir   = 0
+var float trail_stop  = na
+var bool  is_trailing = false
+
+if is_new_day
+    trade_dir   := 0
+    trail_stop  := na
+    is_trailing := false
+
+is_breakout   = long_conditions  and trade_dir == 0 and barstate.isconfirmed
+is_breakdown  = short_conditions and trade_dir == 0 and barstate.isconfirmed
+
+is_long_stop  = trade_dir ==  1 and not na(trail_stop) and low  <= trail_stop and barstate.isconfirmed
+is_short_stop = trade_dir == -1 and not na(trail_stop) and high >= trail_stop and barstate.isconfirmed
+is_stop_hit   = is_long_stop or is_short_stop
+
+// Entries (long wins a same-bar tie; both firing at once is filtered out anyway)
+if is_breakout
+    trail_stop  := lowest_n
+    is_trailing := false
+    trade_dir   := 1
+else if is_breakdown
+    trail_stop  := highest_n
+    is_trailing := false
+    trade_dir   := -1
+
+// Ratchet: long stop only rises, short stop only falls
+if trade_dir == 1 and not na(trail_stop)
+    if high > highest_n
+        candidate = lowest_n
+        if candidate > trail_stop
+            trail_stop  := candidate
+            is_trailing := true
+
+if trade_dir == -1 and not na(trail_stop)
+    if low < lowest_n
+        candidate = highest_n
+        if candidate < trail_stop
+            trail_stop  := candidate
+            is_trailing := true
+
+if is_stop_hit
+    trade_dir   := 0
+    trail_stop  := na
+    is_trailing := false
+
+// ── Alerts ───────────────────────────────────────────────────────────────────
+alertcondition(is_breakout,
+     title   = "ORB Entry Signal (LONG)",
+     message = "ENTRY LONG -- {{ticker}} | ORB Breakout above OR High | Price: {{close}} | Time: {{time}}")
+
+alertcondition(is_breakdown,
+     title   = "ORB Entry Signal (SHORT)",
+     message = "ENTRY SHORT -- {{ticker}} | ORB Breakdown below OR Low | Price: {{close}} | Time: {{time}}")
+
+alertcondition(is_long_stop,
+     title   = "ORB Exit — Long Stop Hit",
+     message = "EXIT LONG (STOP HIT) -- {{ticker}} | Price: {{close}} | Time: {{time}}")
+
+alertcondition(is_short_stop,
+     title   = "ORB Exit — Short Stop Hit",
+     message = "EXIT SHORT (STOP HIT) -- {{ticker}} | Price: {{close}} | Time: {{time}}")
+
+alertcondition(is_breakout or is_breakdown,
+     title   = "ORB Entry — Either Direction",
+     message = "ENTRY -- {{ticker}} | ORB break | Price: {{close}} | Time: {{time}}")
+
+// ── Plots ────────────────────────────────────────────────────────────────────
+plot(show_or ? or_high : na, "OR High", color=color.new(color.orange, 0), linewidth=1, style=plot.style_linebr)
+plot(show_or ? or_low  : na, "OR Low",  color=color.new(color.aqua,   0), linewidth=1, style=plot.style_linebr)
+
+stop_color = is_trailing ? color.new(color.green, 0) : color.new(color.red, 0)
+plot(show_stop and trade_dir != 0 ? trail_stop : na, "Trailing Stop", color=stop_color, linewidth=2, style=plot.style_linebr)
+
+plotshape(is_breakout,   "ORB Long Signal",  shape.triangleup,   location.belowbar, color=color.new(color.lime,   0), size=size.normal)
+plotshape(is_breakdown,  "ORB Short Signal", shape.triangledown, location.abovebar, color=color.new(color.red,    0), size=size.normal)
+plotshape(is_long_stop,  "Long Stop Hit",    shape.square,       location.abovebar, color=color.new(color.orange, 0), size=size.small)
+plotshape(is_short_stop, "Short Stop Hit",   shape.square,       location.belowbar, color=color.new(color.orange, 0), size=size.small)
+
+bgcolor(long_conditions ? color.new(color.green, 85) : short_conditions ? color.new(color.red, 85) : na, title="Conditions Met")
