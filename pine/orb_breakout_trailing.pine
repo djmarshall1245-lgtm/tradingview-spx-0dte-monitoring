@@ -8,6 +8,10 @@ bool  use_short  = input.bool(true,  "Enable Downside Breakdown (short)", group=
 int   lookback   = input.int(2,     "Trailing Stop Lookback (bars)", minval=1, maxval=50, group="Trailing Stop")
 bool  show_stop  = input.bool(true,  "Show Trailing Stop Line", group="Display")
 bool  show_or    = input.bool(true,  "Show OR High/Low Lines",  group="Display")
+bool  show_vwap  = input.bool(true,  "Show VWAP",       group="VWAP")
+bool  show_bands = input.bool(true,  "Show VWAP Bands", group="VWAP")
+float band_mult  = input.float(1.0, "Band Multiplier (std dev)", minval=0.1, step=0.1, group="VWAP")
+vwap_src         = input.source(hlc3, "VWAP Source", group="VWAP")
 
 // ── Session / opening range ──────────────────────────────────────────────────
 is_new_day     = ta.change(time("D")) != 0
@@ -37,7 +41,7 @@ if not or_complete and not is_or_bar and hour >= 10 and not na(or_high)
     or_complete := true
 
 or_vol_avg = or_vol_count > 0 ? or_vol_sum / or_vol_count : na
-vwap       = ta.vwap(hlc3)
+[vwap, vwap_up, vwap_dn] = ta.vwap(vwap_src, is_new_day, band_mult)
 lowest_n   = ta.lowest(low,   lookback)[1]
 highest_n  = ta.highest(high, lookback)[1]
 
@@ -129,6 +133,11 @@ alertcondition(is_breakout or is_breakdown,
 // ── Plots ────────────────────────────────────────────────────────────────────
 plot(show_or ? or_high : na, "OR High", color=color.new(color.orange, 0), linewidth=1, style=plot.style_linebr)
 plot(show_or ? or_low  : na, "OR Low",  color=color.new(color.aqua,   0), linewidth=1, style=plot.style_linebr)
+
+p_vwap = plot(show_vwap  ? vwap    : na, "VWAP",      color=color.new(color.blue, 0),  linewidth=2)
+p_up   = plot(show_bands ? vwap_up : na, "VWAP Upper", color=color.new(color.blue, 60), linewidth=1)
+p_dn   = plot(show_bands ? vwap_dn : na, "VWAP Lower", color=color.new(color.blue, 60), linewidth=1)
+fill(p_up, p_dn, color=show_bands ? color.new(color.blue, 94) : na, title="VWAP Band Fill")
 
 stop_color = is_trailing ? color.new(color.green, 0) : color.new(color.red, 0)
 plot(show_stop and trade_dir != 0 ? trail_stop : na, "Trailing Stop", color=stop_color, linewidth=2, style=plot.style_linebr)
