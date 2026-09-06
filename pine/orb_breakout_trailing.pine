@@ -20,10 +20,6 @@ bool   show_sat   = input.bool(false, "Show SAT (sell) Signal — mirrored, not 
 int    ema_fast   = input.int(8,  "Fast EMA", minval=1, group="EMA 8-21")
 int    ema_slow   = input.int(21, "Slow EMA", minval=1, group="EMA 8-21")
 ema_src           = input.source(close, "EMA Source", group="EMA 8-21")
-string vol_mode   = input.string("Rising vs prior bar", "Volume Increase Test", options=["Rising vs prior bar", "Above volume SMA"], group="EMA 8-21")
-int    vol_len    = input.int(20, "Volume SMA Length (if used)", minval=1, group="EMA 8-21")
-string sig_mode   = input.string("First bar only (transition)", "Signal Firing Mode", options=["First bar only (transition)", "Cooldown N bars", "Every bar in state"], group="EMA 8-21")
-int    sig_cool   = input.int(10, "Cooldown Bars (if used)", minval=1, group="EMA 8-21")
 bool   use_ema_gate = input.bool(false, "Require EMA momentum for ORB entries", group="EMA 8-21")
 
 // ── Session / opening range ──────────────────────────────────────────────────
@@ -62,35 +58,14 @@ highest_n  = ta.highest(high, lookback)[1]
 ema_f = ta.ema(ema_src, ema_fast)
 ema_s = ta.ema(ema_src, ema_slow)
 
-vol_rising = vol_mode == "Rising vs prior bar" ? volume > volume[1] : volume > ta.sma(volume, vol_len)
+// AL = 8 EMA crosses UP through 21 EMA and price is above the 8 EMA
+// SAT = the mirror (8 crosses DOWN through 21, price below the 8)
+al_signal  = ta.crossover(ema_f,  ema_s) and close > ema_f
+sat_signal = ta.crossunder(ema_f, ema_s) and close < ema_f
 
-ema_up   = ema_f > ema_f[1] and ema_s > ema_s[1]
-ema_down = ema_f < ema_f[1] and ema_s < ema_s[1]
-
-ema_bull = close > ema_f and close > ema_s and ema_up
-ema_bear = close < ema_f and close < ema_s and ema_down
-
-// Raw state: true on every bar the condition holds — fires constantly in a trend
-al_raw  = ema_bull and vol_rising
-sat_raw = ema_bear and vol_rising
-
-// Fire only on entry into the state, or after a cooldown, or on every bar
-var int al_last  = -1000
-var int sat_last = -1000
-
-al_first  = al_raw  and not al_raw[1]
-sat_first = sat_raw and not sat_raw[1]
-
-al_cool  = al_raw  and (bar_index - al_last)  >= sig_cool
-sat_cool = sat_raw and (bar_index - sat_last) >= sig_cool
-
-al_signal  = sig_mode == "First bar only (transition)" ? al_first  : sig_mode == "Cooldown N bars" ? al_cool  : al_raw
-sat_signal = sig_mode == "First bar only (transition)" ? sat_first : sig_mode == "Cooldown N bars" ? sat_cool : sat_raw
-
-if al_signal
-    al_last := bar_index
-if sat_signal
-    sat_last := bar_index
+// State used by the optional ORB gate: 8 above 21 (trend side), price on side
+ema_bull = ema_f > ema_s and close > ema_f
+ema_bear = ema_f < ema_s and close < ema_f
 
 // ── Shared filters ───────────────────────────────────────────────────────────
 vol_ok  = not na(or_vol_avg) and volume >= vol_mult * or_vol_avg
@@ -187,8 +162,8 @@ plot(show_ema ? ema_s : na, "EMA 21", color=color.new(color.white,  0), linewidt
 plotshape(show_al  and al_signal,  "AL (Buy)",   shape.labelup,   location.belowbar, color=color.new(color.green, 0), text="B", textcolor=color.white, size=size.tiny)
 plotshape(show_sat and sat_signal, "SAT (Sell)", shape.labeldown, location.abovebar, color=color.new(color.maroon, 0), text="S", textcolor=color.white, size=size.tiny)
 
-alertcondition(al_signal,  title="EMA 8/21 AL (Buy)",   message="AL -- {{ticker}} | close above 8/21 EMA, both rising, volume up | Price: {{close}}")
-alertcondition(sat_signal, title="EMA 8/21 SAT (Sell)", message="SAT -- {{ticker}} | close below 8/21 EMA, both falling, volume up | Price: {{close}}")
+alertcondition(al_signal,  title="EMA 8/21 AL (Buy)",   message="AL -- {{ticker}} | 8 EMA crossed above 21 EMA, price above 8 | Price: {{close}}")
+alertcondition(sat_signal, title="EMA 8/21 SAT (Sell)", message="SAT -- {{ticker}} | 8 EMA crossed below 21 EMA, price below 8 | Price: {{close}}")
 
 p_vwap = plot(show_vwap  ? vwap    : na, "VWAP",      color=color.new(color.blue, 0),  linewidth=2)
 p_up   = plot(show_bands ? vwap_up : na, "VWAP Upper", color=color.new(color.blue, 60), linewidth=1)
