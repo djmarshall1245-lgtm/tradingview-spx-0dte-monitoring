@@ -13,6 +13,17 @@ bool  show_bands = input.bool(true,  "Show VWAP Bands", group="VWAP")
 float band_mult  = input.float(1.0, "Band Multiplier (std dev)", minval=0.1, step=0.1, group="VWAP")
 vwap_src         = input.source(hlc3, "VWAP Source", group="VWAP")
 
+// EMA 8/21 momentum (replicates the closed-source "EMA 8-21" indicator)
+bool   show_ema   = input.bool(true,  "Show EMA 8 / 21",            group="EMA 8-21")
+bool   show_al    = input.bool(true,  "Show AL (buy) Signal",       group="EMA 8-21")
+bool   show_sat   = input.bool(false, "Show SAT (sell) Signal — mirrored, not in original", group="EMA 8-21")
+int    ema_fast   = input.int(8,  "Fast EMA", minval=1, group="EMA 8-21")
+int    ema_slow   = input.int(21, "Slow EMA", minval=1, group="EMA 8-21")
+ema_src           = input.source(close, "EMA Source", group="EMA 8-21")
+string vol_mode   = input.string("Rising vs prior bar", "Volume Increase Test", options=["Rising vs prior bar", "Above volume SMA"], group="EMA 8-21")
+int    vol_len    = input.int(20, "Volume SMA Length (if used)", minval=1, group="EMA 8-21")
+bool   use_ema_gate = input.bool(false, "Require EMA momentum for ORB entries", group="EMA 8-21")
+
 // ── Session / opening range ──────────────────────────────────────────────────
 is_new_day     = ta.change(time("D")) != 0
 is_or_bar      = hour == 9 and minute >= 30
@@ -45,6 +56,21 @@ or_vol_avg = or_vol_count > 0 ? or_vol_sum / or_vol_count : na
 lowest_n   = ta.lowest(low,   lookback)[1]
 highest_n  = ta.highest(high, lookback)[1]
 
+// ── EMA 8/21 momentum ────────────────────────────────────────────────────────
+ema_f = ta.ema(ema_src, ema_fast)
+ema_s = ta.ema(ema_src, ema_slow)
+
+vol_rising = vol_mode == "Rising vs prior bar" ? volume > volume[1] : volume > ta.sma(volume, vol_len)
+
+ema_up   = ema_f > ema_f[1] and ema_s > ema_s[1]
+ema_down = ema_f < ema_f[1] and ema_s < ema_s[1]
+
+al_signal  = close > ema_f and close > ema_s and ema_up   and vol_rising
+sat_signal = close < ema_f and close < ema_s and ema_down and vol_rising
+
+ema_bull = close > ema_f and close > ema_s and ema_up
+ema_bear = close < ema_f and close < ema_s and ema_down
+
 // ── Shared filters ───────────────────────────────────────────────────────────
 vol_ok  = not na(or_vol_avg) and volume >= vol_mult * or_vol_avg
 time_ok = in_time_window
@@ -54,13 +80,13 @@ mid_bar = (high + low) / 2
 above_or_high  = or_complete and not na(or_high) and close > or_high
 above_vwap     = close > vwap
 close_in_top   = (high - low) > 0 and close >= mid_bar
-long_conditions  = use_long  and above_or_high and vol_ok and above_vwap and time_ok and close_in_top
+long_conditions  = use_long  and above_or_high and vol_ok and above_vwap and time_ok and close_in_top and (not use_ema_gate or ema_bull)
 
 // ── Short conditions (downside breakdown) — mirror of the long side ──────────
 below_or_low   = or_complete and not na(or_low) and close < or_low
 below_vwap     = close < vwap
 close_in_bot   = (high - low) > 0 and close <= mid_bar
-short_conditions = use_short and below_or_low and vol_ok and below_vwap and time_ok and close_in_bot
+short_conditions = use_short and below_or_low and vol_ok and below_vwap and time_ok and close_in_bot and (not use_ema_gate or ema_bear)
 
 // ── Trade state: 0 = flat, 1 = long, -1 = short ──────────────────────────────
 var int   trade_dir   = 0
@@ -133,6 +159,15 @@ alertcondition(is_breakout or is_breakdown,
 // ── Plots ────────────────────────────────────────────────────────────────────
 plot(show_or ? or_high : na, "OR High", color=color.new(color.orange, 0), linewidth=1, style=plot.style_linebr)
 plot(show_or ? or_low  : na, "OR Low",  color=color.new(color.aqua,   0), linewidth=1, style=plot.style_linebr)
+
+plot(show_ema ? ema_f : na, "EMA 8",  color=color.new(color.yellow, 0), linewidth=1)
+plot(show_ema ? ema_s : na, "EMA 21", color=color.new(color.white,  0), linewidth=1)
+
+plotshape(show_al  and al_signal,  "AL (Buy)",   shape.labelup,   location.belowbar, color=color.new(color.green, 0), text="B", textcolor=color.white, size=size.tiny)
+plotshape(show_sat and sat_signal, "SAT (Sell)", shape.labeldown, location.abovebar, color=color.new(color.maroon, 0), text="S", textcolor=color.white, size=size.tiny)
+
+alertcondition(al_signal,  title="EMA 8/21 AL (Buy)",   message="AL -- {{ticker}} | close above 8/21 EMA, both rising, volume up | Price: {{close}}")
+alertcondition(sat_signal, title="EMA 8/21 SAT (Sell)", message="SAT -- {{ticker}} | close below 8/21 EMA, both falling, volume up | Price: {{close}}")
 
 p_vwap = plot(show_vwap  ? vwap    : na, "VWAP",      color=color.new(color.blue, 0),  linewidth=2)
 p_up   = plot(show_bands ? vwap_up : na, "VWAP Upper", color=color.new(color.blue, 60), linewidth=1)
