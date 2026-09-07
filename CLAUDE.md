@@ -24,24 +24,47 @@ loop with my GO, never via a recap.
 
 ## START-OF-SESSION RULE — verify MCP tools BEFORE any trading action
 
-Right after reading the YAML files, run `/mcp` and confirm all four of
-these servers show **connected** (not `needs authentication`, not missing):
+Right after reading the YAML files, run `/mcp` and check these servers.
+They are split into two tiers — a missing BLOCKER halts, a missing
+DEGRADED server does not.
 
-  1. `tradingview`        — chart reads (TradingView MCP)
-  2. `unusualwhales`      — institutional flow, GEX, dark pool, max pain
-  3. `firecrawl`          — news enrichment per held name
-  4. `robinhood-trading`  — order preview + placement (sub ****3232)
+BLOCKERS — no substitute exists, HALT if either is missing/unauthenticated:
 
-If ANY are missing or unauthenticated, HALT and tell me which:
+  1. `tradingview` (may be listed as `tradingview-mcp`) — chart reads.
+     No chart = no Voodoo levels, no Fireline/Treeline, no signal. Nothing
+     downstream is valid without it.
+  2. `robinhood-trading` — order preview + placement (sub ****3232).
+     Only needed to EXECUTE. A read-only brief may proceed without it;
+     any trade proposal or order may not.
+
+If a BLOCKER is down, say so and stop:
 
 > "MCP CHECK FAILED — <server> is <missing | needs authentication>.
->  Cannot proceed with morning brief / trade desk until fixed."
+>  Cannot proceed with <morning brief | trade desk> until fixed."
 
-Do not try to substitute one tool for another (no "I'll use web search
-instead of Firecrawl") and do not present a brief that silently lacks
-flow or news data. A trading system reporting partial data without saying
-so is the false-confidence failure mode — same class as the stale UW
-tables on 2026-06-20.
+DEGRADED — proceed, but the affected section must be marked, never faked:
+
+  3. `unusualwhales` — institutional flow, GEX, dark pool, max pain.
+     If down, section ③ reads exactly:
+     "③ INSTITUTIONAL FLOW — [MISSING] unusualwhales MCP not connected.
+      No GEX, wall, dark pool or max pain data this session."
+     Then say plainly that conviction is REDUCED — the flow cross-check
+     the desk normally applies is absent, so treat every signal as
+     unconfirmed. The flow-agent cannot run; the decision-agent must
+     treat Flow as MISSING (not as CONFIRM).
+  4. `firecrawl` — news, econ calendar, overnight macro.
+     If down, sections ①, ④ and ⑤ are each marked
+     "[MISSING] firecrawl MCP not connected — no news/calendar pulled."
+     State that an unknown catalyst may be live and unaccounted for.
+
+Every DEGRADED gap must also appear in section ⑦ DO NOT TRADE UNTIL YOU
+VERIFY, with the manual way to check it (UW web app, investing.com, etc).
+
+Do not substitute one tool for another (no "I'll use web search instead
+of Firecrawl") and never present a brief that silently lacks flow or news
+data. Degrading LOUDLY is allowed; degrading QUIETLY is not. A trading
+system reporting partial data without saying so is the false-confidence
+failure mode — same class as the stale UW tables on 2026-06-20.
 
 Tool-loading is lazy by design (saves ~4k tokens/session), so connected
 servers won't show up in context until a prompt triggers them. That's
