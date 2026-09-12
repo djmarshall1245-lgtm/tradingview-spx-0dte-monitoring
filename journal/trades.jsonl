@@ -13,3 +13,6 @@
 {"event": "session_start", "asof": "2026-07-21", "ts": "2026-07-21T09:30:32.596900-04:00", "today_cap": 1}
 {"event": "session_end", "asof": "2026-07-20", "ts": "2026-07-21T21:30:18.648442-04:00", "fills_count": 0, "gates_evaluated": 0, "gates_fired": 0, "notes": "backfill: missed Monday evening close"}
 {"event": "session_end", "asof": "2026-07-21", "ts": "2026-07-21T21:30:45.284692-04:00", "fills_count": 0, "gates_evaluated": 0, "gates_fired": 0, "notes": "tue flat, gated; supervisor run"}
+{"event": "session_start", "asof": "2026-09-07", "ts": "2026-09-07T13:54:07.894397-04:00", "today_cap": 1}
+{"event": "session_start", "asof": "2026-09-08", "ts": "2026-09-08T09:41:36.122057-04:00", "today_cap": 1}
+{"event": "session_start", "asof": "2026-09-11", "ts": "2026-09-11T09:19:12.761996-04:00", "today_cap": 1}

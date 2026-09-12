@@ -163,7 +163,7 @@ pipeline:
   #         only supplies the drug. A live run filed a home-visiting social
   #         program under JNJ that way. Wider, not better.
   query_mode: exact
-  max_lines: 25         # cap the diff block; NEW early-phase trials are hidden
+  max_lines: 120      # cap the diff block; NEW early-phase trials are hidden
 
 # ─────────────────────────────────────────────────────────────────────
 screenshots:
